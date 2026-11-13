@@ -1,3 +1,64 @@
 <resources>
     <string name="app_name">SignBridge</string>
+
+    <!-- Ngữ cảnh -->
+    <string name="context_cafe">Quán ăn</string>
+    <string name="context_pharmacy">Hiệu thuốc</string>
+    <string name="context_public">Hành chính</string>
+    <string name="context_custom">Tự do</string>
+    <string name="context_select_title">Bạn đang ở đâu?</string>
+    <string name="context_select_subtitle">Chọn nơi để gợi ý thẻ và câu nói phù hợp</string>
+
+    <!-- Chung -->
+    <string name="action_back">Quay lại</string>
+    <string name="action_manage_chips">Quản lý thẻ</string>
+    <string name="action_dismiss">Đóng</string>
+
+    <!-- Nửa trên: nhân viên -->
+    <string name="staff_label_customer_says">Khách nói:</string>
+    <string name="staff_waiting">Đang chờ khách…</string>
+    <string name="staff_customer_signing">Khách đang ký hiệu…</string>
+    <string name="staff_speaking">Đang phát loa…</string>
+    <string name="staff_replay">Phát lại</string>
+    <string name="staff_mic_idle">Nhấn giữ để nói</string>
+    <string name="staff_mic_active">Đang nghe… thả tay để gửi</string>
+    <string name="staff_summarizing">Đang tóm tắt…</string>
+
+    <!-- Nửa dưới: người khiếm thính -->
+    <string name="deaf_sign_idle">Nhấn giữ để ký hiệu</string>
+    <string name="deaf_sign_active">Đang quay… thả tay để gửi</string>
+    <string name="deaf_recognizing">Đang nhận diện ký hiệu…</string>
+    <string name="deaf_staff_speaking">Nhân viên đang nói…</string>
+    <string name="deaf_summary_title">Nhân viên nói</string>
+    <string name="deaf_quick_replies">Trả lời nhanh</string>
+    <string name="deaf_understood">Đã hiểu: %1$s</string>
+    <string name="deaf_unsure_title">Máy chưa chắc, bạn chạm thẻ để xác nhận:</string>
+    <string name="deaf_unsure_glosses">Máy đoán: %1$s</string>
+    <string name="deaf_unknown_gloss">\?</string>
+    <string name="deaf_chips_title">Thẻ từ khóa (chọn 1–3)</string>
+    <string name="deaf_selected">Đã chọn %1$d/%2$d</string>
+    <string name="deaf_send_chips">Nói câu này</string>
+    <string name="deaf_clear_chips">Bỏ chọn</string>
+    <string name="deaf_no_chips">Chưa có thẻ. Vào Quản lý thẻ để thêm.</string>
+    <string name="deaf_expanding">Đang tạo câu…</string>
+
+    <!-- Lỗi -->
+    <string name="error_no_sign">Không thấy ký hiệu. Hãy chọn thẻ bên dưới.</string>
+    <string name="error_no_speech">Không nghe rõ. Vui lòng nhấn giữ và nói lại.</string>
+    <string name="error_offline">Mất kết nối. Hãy dùng thẻ từ khóa.</string>
+    <string name="error_ai">Dịch vụ đang chậm. Hãy dùng thẻ từ khóa.</string>
+    <string name="error_payload">Dữ liệu quá lớn, vui lòng thử lại.</string>
+    <string name="error_generic">Có lỗi xảy ra, vui lòng thử lại.</string>
+
+    <!-- Quản lý thẻ -->
+    <string name="chip_manage_title">Thẻ cá nhân · %1$s</string>
+    <string name="chip_manage_input_label">Thẻ mới (vd: Dị ứng penicillin)</string>
+    <string name="chip_manage_add">Thêm</string>
+    <string name="chip_manage_personal">Thẻ của bạn</string>
+    <string name="chip_manage_preset">Thẻ có sẵn</string>
+    <string name="chip_manage_empty">Chưa có thẻ cá nhân.</string>
+    <string name="chip_manage_delete">Xoá thẻ %1$s</string>
+    <string name="chip_error_empty">Vui lòng nhập nội dung thẻ.</string>
+    <string name="chip_error_too_long">Tối đa %1$d ký tự.</string>
+    <string name="chip_error_duplicate">Thẻ này đã có.</string>
 </resources>
