@@ -27,5 +27,6 @@ class ServerSettingsTest {
         val restored = ServerSettingsRepositoryImpl(preferences, { true }, Dispatchers.Unconfined)
         assertEquals(saved, restored.address.value)
         preferences.edit().clear().commit()
+        Unit
     }
 }
