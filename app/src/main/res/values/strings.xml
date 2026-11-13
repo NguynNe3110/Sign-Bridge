@@ -61,4 +61,12 @@
     <string name="chip_error_empty">Vui lòng nhập nội dung thẻ.</string>
     <string name="chip_error_too_long">Tối đa %1$d ký tự.</string>
     <string name="chip_error_duplicate">Thẻ này đã có.</string>
+    <string name="staff_offline">Ngoại tuyến · câu ghép từ thẻ</string>
+    <string name="error_not_configured">Chưa cấu hình server. Bạn vẫn có thể gửi thẻ ngoại tuyến.</string>
+    <string name="error_device">Thiết bị chưa sẵn sàng. Kiểm tra camera, micro hoặc giọng đọc tiếng Việt; bạn vẫn có thể dùng thẻ.</string>
+    <string name="error_storage">Không thể đọc hoặc lưu dữ liệu. Vui lòng thử lại.</string>
+    <string name="error_camera_permission">Cần quyền camera để ghi ký hiệu. Cấp quyền trong Cài đặt nếu đã từ chối vĩnh viễn, hoặc dùng thẻ.</string>
+    <string name="error_mic_permission">Cần quyền micro để ghi lời nói. Cấp quyền trong Cài đặt nếu đã từ chối vĩnh viễn, rồi nhấn giữ lại.</string>
+    <string name="camera_hold_again">Camera đã mở. Giữ nút Ký hiệu lần nữa, ít nhất 1,5 giây.</string>
+    <string name="camera_preparing">Đang mở camera. Nếu camera không sẵn sàng, hãy dùng thẻ.</string>
 </resources>

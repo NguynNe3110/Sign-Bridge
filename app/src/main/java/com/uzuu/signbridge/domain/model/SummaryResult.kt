@@ -1,38 +1,26 @@
 package com.uzuu.signbridge.domain.model
 
-/** Kết quả tóm tắt lời nhân viên (`POST /api/summarize`). */
-data class SummaryResult(
-    val transcript: String,
-    val summary: String,
-    val highlights: List<Highlight>,
-    val iconCode: IconCode,
-    val quickReplies: List<String>,
-)
+typealias SummaryResult = SpeechSummary
 
-data class Highlight(
-    val type: HighlightType,
-    val text: String,
-)
-
-enum class HighlightType {
-    PRICE,
-    COUNTER,
-    DOSAGE,
-    TIME,
-    QUANTITY,
-    OTHER,
+/** API codes are strings in the canonical TV2 model. */
+object HighlightType {
+    const val PRICE = "PRICE"
+    const val COUNTER = "COUNTER"
+    const val DOSAGE = "DOSAGE"
+    const val TIME = "TIME"
+    const val QUANTITY = "QUANTITY"
+    const val OTHER = "OTHER"
 }
-
-enum class IconCode {
-    PILL,
-    MONEY,
-    QR_PAYMENT,
-    COUNTER,
-    TIME,
-    DOCUMENT,
-    DRINK,
-    FOOD,
-    CHECK,
-    WARNING,
-    INFO,
+object IconCode {
+    const val PILL = "PILL"
+    const val MONEY = "MONEY"
+    const val QR_PAYMENT = "QR_PAYMENT"
+    const val COUNTER = "COUNTER"
+    const val TIME = "TIME"
+    const val DOCUMENT = "DOCUMENT"
+    const val DRINK = "DRINK"
+    const val FOOD = "FOOD"
+    const val CHECK = "CHECK"
+    const val WARNING = "WARNING"
+    const val INFO = "INFO"
 }

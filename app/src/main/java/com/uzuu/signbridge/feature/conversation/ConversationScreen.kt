@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.uzuu.signbridge.core.ui.Haptics
+import com.uzuu.signbridge.core.ui.CameraPreviewController
 import com.uzuu.signbridge.domain.model.ContextType
 import com.uzuu.signbridge.domain.model.Highlight
 import com.uzuu.signbridge.domain.model.HighlightType
@@ -36,11 +37,13 @@ fun ConversationScreen(
     viewModel: ConversationViewModel,
     onBack: () -> Unit,
     onManageChips: (ContextType) -> Unit,
+    cameraPreviewController: CameraPreviewController,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptics = remember(context) { Haptics(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val devices = rememberConversationDevices(viewModel, cameraPreviewController)
 
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -57,6 +60,9 @@ fun ConversationScreen(
         onEvent = viewModel::onEvent,
         onBack = onBack,
         onManageChips = { onManageChips(state.context) },
+        onSignPressed = devices.onSignPressed,
+        onMicPressed = devices.onMicPressed,
+        cameraPreview = devices.preview,
     )
 }
 
@@ -71,6 +77,9 @@ fun ConversationContent(
     onBack: () -> Unit,
     onManageChips: () -> Unit,
     modifier: Modifier = Modifier,
+    onSignPressed: () -> Unit = { onEvent(ConversationUiEvent.SignPressed) },
+    onMicPressed: () -> Unit = { onEvent(ConversationUiEvent.MicPressed) },
+    cameraPreview: @Composable () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         StaffPanel(
@@ -82,10 +91,12 @@ fun ConversationContent(
             micEnabled = !state.isBusy,
             canReplay = state.spokenSentence.isNotBlank() && !state.isBusy,
             error = state.staffError,
-            onMicPressed = { onEvent(ConversationUiEvent.MicPressed) },
+            onMicPressed = onMicPressed,
             onMicReleased = { onEvent(ConversationUiEvent.MicReleased) },
             onReplay = { onEvent(ConversationUiEvent.ReplayClicked) },
             onDismissError = { onEvent(ConversationUiEvent.StaffErrorDismissed) },
+            isOffline = state.isOffline,
+            onCaptureCancelled = { onEvent(ConversationUiEvent.CaptureCancelled) },
             modifier = Modifier
                 .weight(0.42f)
                 .fillMaxWidth()
@@ -101,13 +112,15 @@ fun ConversationContent(
             state = state,
             onBack = onBack,
             onManageChips = onManageChips,
-            onSignPressed = { onEvent(ConversationUiEvent.SignPressed) },
+            onSignPressed = onSignPressed,
             onSignReleased = { onEvent(ConversationUiEvent.SignReleased) },
             onChipToggled = { onEvent(ConversationUiEvent.ChipToggled(it)) },
             onClearChips = { onEvent(ConversationUiEvent.ClearChipsClicked) },
             onSendChips = { onEvent(ConversationUiEvent.SendChipsClicked) },
             onQuickReply = { onEvent(ConversationUiEvent.QuickReplyClicked(it)) },
             onDismissError = { onEvent(ConversationUiEvent.DeafErrorDismissed) },
+            cameraPreview = cameraPreview,
+            onCaptureCancelled = { onEvent(ConversationUiEvent.CaptureCancelled) },
             modifier = Modifier
                 .weight(0.58f)
                 .fillMaxWidth(),
@@ -124,9 +137,9 @@ private fun ConversationContentPreview() {
                 context = ContextType.PHARMACY,
                 spokenSentence = "Chào bạn, mình bị đau đầu, muốn mua thuốc.",
                 chips = listOf(
-                    QuickChip(1, ContextType.PHARMACY, "Đau đầu", isPersonal = false),
-                    QuickChip(2, ContextType.PHARMACY, "Sốt", isPersonal = false),
-                    QuickChip(3, ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true),
+                    QuickChip("1", ContextType.PHARMACY, "Đau đầu", isPersonal = false),
+                    QuickChip("2", ContextType.PHARMACY, "Sốt", isPersonal = false),
+                    QuickChip("3", ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true),
                 ),
                 selectedChips = listOf("Đau đầu"),
                 summary = SummaryResult(

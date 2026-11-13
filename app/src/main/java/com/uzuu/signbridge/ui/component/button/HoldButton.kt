@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.uzuu.signbridge.ui.theme.Dimens
@@ -47,9 +48,11 @@ fun HoldButton(
     enabled: Boolean = true,
     idleContainerColor: Color = MaterialTheme.colorScheme.primary,
     idleContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    onPressCancel: () -> Unit = onPressEnd,
 ) {
     val currentOnStart by rememberUpdatedState(onPressStart)
     val currentOnEnd by rememberUpdatedState(onPressEnd)
+    val currentOnCancel by rememberUpdatedState(onPressCancel)
 
     val containerColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceVariant
@@ -67,8 +70,7 @@ fun HoldButton(
             detectTapGestures(
                 onPress = {
                     currentOnStart()
-                    tryAwaitRelease()
-                    currentOnEnd()
+                    if (tryAwaitRelease()) currentOnEnd() else currentOnCancel()
                 },
             )
         }
@@ -80,7 +82,10 @@ fun HoldButton(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Dimens.HoldButtonHeight)
-            .semantics { role = Role.Button }
+            .semantics {
+                role = Role.Button
+                if (enabled) onClick { if (isActive) currentOnEnd() else currentOnStart(); true }
+            }
             .then(gestureModifier),
         shape = RoundedCornerShape(Dimens.CornerRadius),
         color = containerColor,

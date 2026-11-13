@@ -30,6 +30,11 @@ fun ErrorCode.messageRes(): Int = when (this) {
     ErrorCode.NETWORK_UNAVAILABLE -> R.string.error_offline
     ErrorCode.AI_TIMEOUT, ErrorCode.AI_UPSTREAM_ERROR -> R.string.error_ai
     ErrorCode.PAYLOAD_TOO_LARGE -> R.string.error_payload
+    ErrorCode.NOT_CONFIGURED -> R.string.error_not_configured
+    ErrorCode.DEVICE_ERROR -> R.string.error_device
+    ErrorCode.STORAGE_ERROR -> R.string.error_storage
+    ErrorCode.CAMERA_PERMISSION_REQUIRED -> R.string.error_camera_permission
+    ErrorCode.MIC_PERMISSION_REQUIRED -> R.string.error_mic_permission
     ErrorCode.INVALID_REQUEST,
     ErrorCode.UNSUPPORTED_MEDIA_TYPE,
     ErrorCode.UNKNOWN,

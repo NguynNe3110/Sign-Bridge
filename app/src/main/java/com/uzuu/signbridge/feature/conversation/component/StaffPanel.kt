@@ -54,12 +54,15 @@ fun StaffPanel(
     onReplay: () -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
+    isOffline: Boolean = false,
+    onCaptureCancelled: () -> Unit = onMicReleased,
 ) {
     Column(
         modifier = modifier
             .background(StaffZoneBackground)
             .padding(Dimens.ScreenPadding),
     ) {
+        if (isOffline) Text(stringResource(R.string.staff_offline), color = AccentCyan)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -136,6 +139,7 @@ fun StaffPanel(
                 enabled = micEnabled || isRecording,
                 onPressStart = onMicPressed,
                 onPressEnd = onMicReleased,
+                onPressCancel = onCaptureCancelled,
                 idleContainerColor = AccentCyan,
             )
         }

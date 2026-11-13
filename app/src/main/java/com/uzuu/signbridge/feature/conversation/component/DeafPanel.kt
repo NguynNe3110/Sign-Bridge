@@ -60,6 +60,8 @@ fun DeafPanel(
     onQuickReply: (String) -> Unit,
     onDismissError: () -> Unit,
     modifier: Modifier = Modifier,
+    cameraPreview: @Composable () -> Unit = {},
+    onCaptureCancelled: () -> Unit = onSignReleased,
 ) {
     Column(
         modifier = modifier
@@ -76,6 +78,7 @@ fun DeafPanel(
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceM),
         ) {
             state.deafError?.let { ErrorBanner(error = it, onDismiss = onDismissError) }
+            cameraPreview()
 
             when {
                 state.isStaffRecording || state.isSummarizing -> StatusRow(
@@ -129,6 +132,7 @@ fun DeafPanel(
             enabled = !state.isBusy || state.isSigning,
             onPressStart = onSignPressed,
             onPressEnd = onSignReleased,
+            onPressCancel = onCaptureCancelled,
         )
     }
 }

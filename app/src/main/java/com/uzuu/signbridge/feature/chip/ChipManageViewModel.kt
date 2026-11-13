@@ -2,31 +2,33 @@ package com.uzuu.signbridge.feature.chip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.uzuu.signbridge.domain.model.ChipCategory
 import com.uzuu.signbridge.domain.model.ContextType
-import com.uzuu.signbridge.domain.repository.ChipRepository
+import com.uzuu.signbridge.domain.repository.ConversationRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ChipManageViewModel(
     private val context: ContextType,
-    private val chipRepository: ChipRepository,
+    private val chipRepository: ConversationRepository,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(ChipManageUiState(context = context))
-    val uiState: StateFlow<ChipManageUiState> = _uiState.asStateFlow()
+    val uiState = _uiState.asStateFlow()
+    private var saving = false
 
     init {
-        chipRepository.observeChips(context)
-            .onEach { chips ->
-                val (personal, preset) = chips.partition { it.isPersonal }
-                _uiState.update { it.copy(personalChips = personal, presetChips = preset) }
-            }
-            .launchIn(viewModelScope)
+        viewModelScope.launch {
+            try {
+                chipRepository.observeChips(context).collect { chips ->
+                    val (personal, preset) = chips.partition { it.isPersonal }
+                    _uiState.update { it.copy(personalChips = personal, presetChips = preset) }
+                }
+            } catch (cancel: CancellationException) { throw cancel
+            } catch (_: Exception) { _uiState.update { it.copy(inputError = ChipInputError.SAVE_FAILED) } }
+        }
     }
 
     fun onEvent(event: ChipManageUiEvent) {
@@ -34,13 +36,15 @@ class ChipManageViewModel(
             is ChipManageUiEvent.NewLabelChanged ->
                 _uiState.update { it.copy(newLabel = event.value, inputError = null) }
             ChipManageUiEvent.AddClicked -> addChip()
-            is ChipManageUiEvent.DeleteClicked ->
-                viewModelScope.launch { chipRepository.deleteChip(event.id) }
+            is ChipManageUiEvent.DeleteClicked -> mutate {
+                chipRepository.deletePersonalChip(event.id)
+            }
         }
     }
 
     private fun addChip() {
-        val state = _uiState.value
+        if (saving) return
+        val state = uiState.value
         val label = state.newLabel.trim()
         val error = when {
             label.isEmpty() -> ChipInputError.EMPTY
@@ -49,16 +53,23 @@ class ChipManageViewModel(
                 ChipInputError.DUPLICATE
             else -> null
         }
-        if (error != null) {
-            _uiState.update { it.copy(inputError = error) }
-            return
+        if (error != null) { _uiState.update { it.copy(inputError = error) }; return }
+        mutate {
+            chipRepository.addChip(context, label, ChipCategory.DETAIL)
+            _uiState.update { it.copy(newLabel = if (it.newLabel == state.newLabel) "" else it.newLabel, inputError = null) }
         }
-        _uiState.update { it.copy(newLabel = "", inputError = null) }
-        viewModelScope.launch { chipRepository.addPersonalChip(context, label) }
     }
 
-    companion object {
-        /** `/api/expand`: mỗi thẻ ≤ 50 ký tự. */
-        const val MAX_LABEL_LENGTH = 50
+    private fun mutate(block: suspend () -> Unit) {
+        if (saving) return
+        saving = true
+        viewModelScope.launch {
+            try { block()
+            } catch (cancel: CancellationException) { throw cancel
+            } catch (_: Exception) { _uiState.update { it.copy(inputError = ChipInputError.SAVE_FAILED) }
+            } finally { saving = false }
+        }
     }
+
+    companion object { const val MAX_LABEL_LENGTH = 50 }
 }

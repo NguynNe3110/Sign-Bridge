@@ -164,6 +164,7 @@ private fun ChipInputError.message(): String = when (this) {
     ChipInputError.EMPTY -> stringResource(R.string.chip_error_empty)
     ChipInputError.TOO_LONG -> stringResource(R.string.chip_error_too_long, ChipManageViewModel.MAX_LABEL_LENGTH)
     ChipInputError.DUPLICATE -> stringResource(R.string.chip_error_duplicate)
+    ChipInputError.SAVE_FAILED -> stringResource(R.string.error_storage)
 }
 
 @Composable
@@ -211,10 +212,10 @@ private fun ChipManageContentPreview() {
         ChipManageContent(
             state = ChipManageUiState(
                 context = ContextType.PHARMACY,
-                personalChips = listOf(QuickChip(1, ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true)),
+                personalChips = listOf(QuickChip("1", ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true)),
                 presetChips = listOf(
-                    QuickChip(2, ContextType.PHARMACY, "Đau đầu", isPersonal = false),
-                    QuickChip(3, ContextType.CUSTOM, "Cảm ơn", isPersonal = false),
+                    QuickChip("2", ContextType.PHARMACY, "Đau đầu", isPersonal = false),
+                    QuickChip("3", ContextType.CUSTOM, "Cảm ơn", isPersonal = false),
                 ),
             ),
             onEvent = {},

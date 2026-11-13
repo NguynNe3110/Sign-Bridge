@@ -16,7 +16,7 @@ class ChipManageViewModelTest {
     val mainRule = MainDispatcherRule()
 
     private val repository = StubChipRepository(
-        listOf(QuickChip(1, ContextType.CAFE, "Mang đi", isPersonal = false)),
+        listOf(QuickChip("1", ContextType.CAFE, "Mang đi", isPersonal = false)),
     )
 
     private fun createViewModel() = ChipManageViewModel(ContextType.CAFE, repository)
@@ -62,7 +62,11 @@ class ChipManageViewModelTest {
     @Test
     fun `deletes chip`() {
         val vm = createViewModel()
-        vm.onEvent(ChipManageUiEvent.DeleteClicked(1))
-        assertTrue(vm.uiState.value.presetChips.isEmpty())
+        vm.onEvent(ChipManageUiEvent.NewLabelChanged("Thẻ cá nhân"))
+        vm.onEvent(ChipManageUiEvent.AddClicked)
+        val personal = vm.uiState.value.personalChips.single()
+        vm.onEvent(ChipManageUiEvent.DeleteClicked(personal.id))
+        assertTrue(vm.uiState.value.personalChips.isEmpty())
+        assertEquals(1, vm.uiState.value.presetChips.size)
     }
 }

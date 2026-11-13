@@ -63,7 +63,7 @@ fun SummaryCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = summary.iconCode.toImageVector(),
-                    contentDescription = summary.iconCode.name,
+                    contentDescription = summary.iconCode,
                     tint = colors.secondary,
                     modifier = Modifier.size(Dimens.SummaryIconSize),
                 )

@@ -15,4 +15,5 @@ enum class ChipInputError {
     EMPTY,
     TOO_LONG,
     DUPLICATE,
+    SAVE_FAILED,
 }

@@ -44,6 +44,7 @@ fun AppNavHost(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
                 onManageChips = { navController.navigate(Routes.chipManage(it)) },
+                cameraPreviewController = container.cameraPreview,
             )
         }
 

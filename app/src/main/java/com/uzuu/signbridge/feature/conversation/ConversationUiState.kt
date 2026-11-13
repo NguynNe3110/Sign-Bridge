@@ -12,6 +12,8 @@ data class ConversationUiState(
     // Nửa trên (nhân viên)
     /** Câu của người khiếm thính đang hiển thị cho nhân viên. */
     val spokenSentence: String = "",
+    val isInitializing: Boolean = false,
+    val isOffline: Boolean = false,
     val isSpeaking: Boolean = false,
     val isStaffRecording: Boolean = false,
     val isSummarizing: Boolean = false,
@@ -32,7 +34,7 @@ data class ConversationUiState(
     val deafError: ErrorCode? = null,
 ) {
     val isBusy: Boolean
-        get() = isSigning || isRecognizing || isExpanding ||
+        get() = isInitializing || isSigning || isRecognizing || isExpanding ||
             isStaffRecording || isSummarizing || isSpeaking
 
     val canSelectMoreChips: Boolean

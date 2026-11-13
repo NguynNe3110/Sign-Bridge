@@ -21,7 +21,7 @@ import com.uzuu.signbridge.domain.model.ContextType
 import com.uzuu.signbridge.domain.model.IconCode
 
 /** Map `iconCode` của API sang icon hiển thị. */
-fun IconCode.toImageVector(): ImageVector = when (this) {
+fun String.toImageVector(): ImageVector = when (this) {
     IconCode.PILL -> Icons.Filled.Medication
     IconCode.MONEY -> Icons.Filled.Payments
     IconCode.QR_PAYMENT -> Icons.Filled.QrCode2
@@ -32,7 +32,7 @@ fun IconCode.toImageVector(): ImageVector = when (this) {
     IconCode.FOOD -> Icons.Filled.Restaurant
     IconCode.CHECK -> Icons.Filled.CheckCircle
     IconCode.WARNING -> Icons.Filled.Warning
-    IconCode.INFO -> Icons.Filled.Info
+    else -> Icons.Filled.Info
 }
 
 fun ContextType.toImageVector(): ImageVector = when (this) {

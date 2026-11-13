@@ -13,6 +13,7 @@ import com.uzuu.signbridge.domain.model.QuickChip
 import com.uzuu.signbridge.domain.model.SignResult
 import com.uzuu.signbridge.domain.model.SummaryResult
 import com.uzuu.signbridge.domain.model.TurnDirection
+import com.uzuu.signbridge.domain.usecase.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,23 +29,28 @@ class ConversationViewModelTest {
     val mainRule = MainDispatcherRule()
 
     private val conversation = RecordingConversationRepository()
-    private val speaker = RecordingSpeakerRepository()
+    private val speaker = RecordingSpeakerRepository(conversation)
     private val chips = StubChipRepository(
         listOf(
-            QuickChip(1, ContextType.PHARMACY, "Đau đầu", isPersonal = false),
-            QuickChip(2, ContextType.PHARMACY, "Sốt", isPersonal = false),
-            QuickChip(3, ContextType.PHARMACY, "Ho", isPersonal = false),
-            QuickChip(4, ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true),
+            QuickChip("1", ContextType.PHARMACY, "Đau đầu", isPersonal = false),
+            QuickChip("2", ContextType.PHARMACY, "Sốt", isPersonal = false),
+            QuickChip("3", ContextType.PHARMACY, "Ho", isPersonal = false),
+            QuickChip("4", ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true),
         ),
     )
 
-    private fun createViewModel() = ConversationViewModel(
+    private fun createViewModel(): ConversationViewModel {
+        conversation.savedTurns = chips.savedTurns
+        return ConversationViewModel(
         context = ContextType.PHARMACY,
-        conversationRepository = conversation,
-        speakerRepository = speaker,
-        chipRepository = chips,
-        clock = { 1_000L },
+        conversationRepository = chips,
+        deviceRepository = speaker,
+        sendChips = SendChipsUseCase(chips, conversation),
+        recognizeSign = RecognizeSignUseCase(chips, conversation),
+        summarizeSpeech = SummarizeSpeechUseCase(chips, conversation),
+        speakReply = SpeakQuickReplyUseCase(chips, speaker),
     )
+    }
 
     private val summary = SummaryResult(
         transcript = "Uống một viên, giá ba mươi lăm nghìn.",
@@ -129,7 +135,7 @@ class ConversationViewModelTest {
         vm.onEvent(ConversationUiEvent.ChipToggled("Sốt"))
         vm.onEvent(ConversationUiEvent.SendChipsClicked)
 
-        assertEquals(listOf(2L), chips.increasedIds)
+        assertEquals(listOf("2"), chips.increasedIds)
         assertEquals(listOf(listOf("Sốt") to "1 viên • 35.000đ"), conversation.expandCalls)
     }
 
@@ -165,7 +171,7 @@ class ConversationViewModelTest {
         assertFalse(vm.uiState.value.isSummarizing)
         val turn = conversation.savedTurns.single()
         assertEquals(TurnDirection.INCOMING, turn.direction)
-        assertEquals("1 viên • 35.000đ", turn.text)
+        assertEquals("1 viên • 35.000đ", turn.processedText)
     }
 
     @Test

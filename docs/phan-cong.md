@@ -7,10 +7,12 @@
 
 ## 1. Tổng quan
 
+Quy tắc sở hữu file chung và kết quả ghép hai nhánh: [tich-hop-tv1-tv2.md](tich-hop-tv1-tv2.md). Các checkbox TV1 mô tả phần UI; nghiệm thu AI/thiết bị thật vẫn cần kiểm tra end-to-end.
+
 | Người | Vai trò | Repo | Trọng tâm |
 |---|---|---|---|
 | **TV1** | Mobile UI/UX Accessibility | mobile | Màn hình chia đôi 180°, thẻ từ khóa, hiển thị chữ lớn, rung |
-| **TV2** | Mobile thiết bị & Local Storage | mobile | Camera ký hiệu, ghi âm, loa TTS, SQLite, offline, gọi API |
+| **TV2 — Nguyên** | Mobile thiết bị & Local Storage | mobile | Camera ký hiệu, ghi âm, loa TTS, SQLite, offline, gọi API |
 | **TV3** | AI Prompt & Speech Pipeline | backend | Chọn LLM/STT, 3 prompt, thử nhận diện ký hiệu |
 | **TV4** | Backend | backend | Spring Boot 4 endpoint, ghép AI, chạy backend, test end-to-end |
 
@@ -42,7 +44,9 @@
 
 ---
 
-## 4. TV2 — Mobile thiết bị & Local Storage
+## 4. TV2 — Nguyên — Mobile thiết bị & Local Storage
+
+Nguyên xác nhận vai trò TV2. Kế hoạch theo repo Kotlin hiện tại: [ke-hoach-trien-khai.md](ke-hoach-trien-khai.md). Hợp đồng code và cách nối cho TV1: [ban-giao-tv2.md](ban-giao-tv2.md). Checklist dưới đây là tiêu chí nghiệm thu, không tự coi đã đạt trên máy thật chỉ vì implementation đã có.
 
 - [ ] SQLite 4 bảng: `ContextPreset`, `QuickChip`, `ConversationSession`, `MessageTurn` + thẻ mẫu cho 4 ngữ cảnh.
 - [ ] Thêm/xoá thẻ cá nhân, tăng `usageCount`, lưu và đọc lịch sử hội thoại.

@@ -1,9 +1,5 @@
 package com.uzuu.signbridge.domain.model
 
-/** Bối cảnh điểm dịch vụ, khớp enum `context` của API. */
-enum class ContextType {
-    CAFE,
-    PHARMACY,
-    PUBLIC,
-    CUSTOM,
-}
+// TV1 names remain source-compatible; TV2 owns the single persisted model.
+typealias ContextType = ServiceContext
+typealias TurnDirection = Direction

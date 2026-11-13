@@ -1,6 +1,10 @@
 package com.uzuu.signbridge.feature.conversation
 
 sealed interface ConversationUiEvent {
+    data object ScreenStopped : ConversationUiEvent
+    data object CaptureCancelled : ConversationUiEvent
+    data class PermissionDenied(val camera: Boolean) : ConversationUiEvent
+    data object CameraUnavailable : ConversationUiEvent
     // Người khiếm thính
     data object SignPressed : ConversationUiEvent
     data object SignReleased : ConversationUiEvent
