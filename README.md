@@ -14,7 +14,7 @@
 
 1. Dùng Android Studio với JDK 21, cài Android SDK Platform 37. Project compile SDK 37, target SDK 36, chạy từ Android 8.0/API 26.
 2. Mở thư mục project, chọn đường dẫn SDK và Gradle Sync. Android Studio thường tạo `local.properties`; nếu cần tự tạo, copy `local.properties.example` và sửa đường dẫn SDK của bạn.
-3. Chạy `app`. Màn kiểm tra TV2 cho phép thêm/xóa thẻ, gửi thẻ offline và xem lịch sử local ngay khi chưa có backend. Giao diện split-screen cuối cùng thuộc phần TV1.
+3. Chạy `app`, chọn ngữ cảnh để mở giao diện split-screen TV1. Thẻ, camera, mic, TTS và API dùng implementation TV2; chưa có backend vẫn gửi thẻ offline và lưu SQLite.
 4. Để thử AI thật, cấu hình `signbridge.apiBaseUrl` trong Gradle properties của người dùng (xem `gradle.properties.example`) hoặc truyền `-P` khi build. Backend phải hỗ trợ hợp đồng trong docs; repo này không chứa server AI.
 
 ```powershell

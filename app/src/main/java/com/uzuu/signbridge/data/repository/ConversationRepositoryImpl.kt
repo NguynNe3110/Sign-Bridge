@@ -12,11 +12,16 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 
 class ConversationRepositoryImpl(
     private val dao: ConversationDao,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : ConversationRepository {
+    private val revision = MutableStateFlow(0L)
+    override fun observeChips(context: ServiceContext) = revision.map { getChips(context) }
     override suspend fun createSession(context: ServiceContext) = storage {
         ConversationSession(UUID.randomUUID().toString(), context, System.currentTimeMillis()).also {
             dao.createSession(it.id, context.name, it.startedAt)
@@ -36,6 +41,7 @@ class ConversationRepositoryImpl(
             try { dao.insertChip(entity) } catch (error: SQLiteConstraintException) {
                 throw BridgeException(BridgeError.INVALID_REQUEST, "Ngữ cảnh này đã có thẻ cùng tên.", error)
             }
+            revision.update { it + 1 }
             entity.toDomain()
         }
     }
@@ -44,6 +50,7 @@ class ConversationRepositoryImpl(
         if (!dao.deletePersonalChip(id)) {
             throw BridgeException(BridgeError.INVALID_REQUEST, "Chỉ có thể xóa thẻ cá nhân còn tồn tại.")
         }
+        revision.update { it + 1 }
     }
 
     override suspend fun getHistory(limit: Int) = storage { dao.history(limit.coerceIn(1, 500)).map { it.toDomain() } }
@@ -56,6 +63,7 @@ class ConversationRepositoryImpl(
         val turn = MessageTurnEntity(UUID.randomUUID().toString(), sessionId, direction.name,
             rawInput, processedText, iconCode, isOffline, System.currentTimeMillis())
         dao.appendTurn(turn, usedChipIds)
+        revision.update { it + 1 }
         turn.toDomain()
     }
 

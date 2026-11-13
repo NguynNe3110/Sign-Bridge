@@ -13,6 +13,11 @@ import com.uzuu.signbridge.data.repository.*
 import com.uzuu.signbridge.domain.repository.*
 import com.uzuu.signbridge.domain.usecase.*
 import com.uzuu.signbridge.feature.devicecheck.DeviceCheckViewModel
+import com.uzuu.signbridge.feature.conversation.ConversationViewModel
+import com.uzuu.signbridge.feature.chip.ChipManageViewModel
+import com.uzuu.signbridge.domain.model.ContextType
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
@@ -36,6 +41,15 @@ class AppContainer(context: Context) {
     val summarizeSpeech = SummarizeSpeechUseCase(conversation, translation)
     val speakQuickReply = SpeakQuickReplyUseCase(conversation, device)
 
+    fun conversationViewModelFactory(context: ContextType) = viewModelFactory {
+        initializer { ConversationViewModel(context, conversation, device,
+            sendChips, recognizeSign, summarizeSpeech, speakQuickReply) }
+    }
+
+    fun chipManageViewModelFactory(context: ContextType) = viewModelFactory {
+        initializer { ChipManageViewModel(context, conversation) }
+    }
+
     val deviceCheckFactory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(DeviceCheckViewModel::class.java))
@@ -45,4 +59,3 @@ class AppContainer(context: Context) {
         }
     }
 }
-

@@ -8,7 +8,7 @@ data class QuickChip(
     val id: String,
     val context: ServiceContext,
     val label: String,
-    val category: ChipCategory,
+    val category: ChipCategory = ChipCategory.DETAIL,
     val usageCount: Int = 0,
     val isPersonal: Boolean = false,
 )
@@ -52,5 +52,9 @@ data class SignResult(
     val needsConfirmation: Boolean
         get() = confidence < 0.7 || glosses.isEmpty() ||
             glosses.any { it == "UNKNOWN" } || sentence.isBlank()
+
+    companion object {
+        const val UNKNOWN_GLOSS = "UNKNOWN"
+    }
 }
 

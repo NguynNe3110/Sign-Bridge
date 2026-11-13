@@ -11,22 +11,37 @@ class SendChipsUseCase(
     suspend operator fun invoke(
         session: ConversationSession, chips: List<QuickChip>, previousIncoming: String?,
     ): OutgoingMessage {
-        if (chips.size !in 1..3 || chips.map { it.id }.distinct().size != chips.size ||
-            chips.any { it.context != session.context || it.label.isBlank() || it.label.length > 50 }) {
-            throw BridgeException(BridgeError.INVALID_REQUEST, "Chọn 1–3 thẻ trong ngữ cảnh hiện tại.")
-        }
+        if (chips.map { it.id }.distinct().size != chips.size || chips.any { it.context != session.context }) invalid()
+        return send(session, chips.map { it.label }, chips.map { it.id }, previousIncoming)
+    }
+
+    /** TV1 may confirm suggested labels that are not saved personal chips. Do not fabricate DB IDs. */
+    suspend fun fromLabels(session: ConversationSession, labels: List<String>, previousIncoming: String?): OutgoingMessage {
+        validate(labels)
+        val stored = conversation.getChips(session.context)
+        return send(session, labels, stored.filter { it.label in labels }.map { it.id }, previousIncoming)
+    }
+
+    private suspend fun send(
+        session: ConversationSession, labels: List<String>, usedIds: List<String>, previousIncoming: String?,
+    ): OutgoingMessage {
+        validate(labels)
         val result = try {
-            OutgoingMessage(translation.expand(session.context, chips.map { it.label }, previousIncoming), false)
+            OutgoingMessage(translation.expand(session.context, labels, previousIncoming), false)
         } catch (error: BridgeException) {
             if (!error.allowsOfflineChips) throw error
-            // Preserve every label verbatim; no fabricated AI output or medical advice.
-            OutgoingMessage(chips.joinToString(" · ") { it.label }, true)
+            OutgoingMessage(labels.joinToString(" · "), true)
         }
-        conversation.appendTurn(
-            session.id, Direction.OUTGOING, chips.joinToString(" · ") { it.label },
-            result.sentence, isOffline = result.isOffline, usedChipIds = chips.map { it.id },
-        )
+        conversation.appendTurn(session.id, Direction.OUTGOING, labels.joinToString(" · "),
+            result.sentence, isOffline = result.isOffline, usedChipIds = usedIds)
         return result
     }
+
+    private fun validate(labels: List<String>) {
+        if (labels.size !in 1..3 || labels.distinct().size != labels.size ||
+            labels.any { it.isBlank() || it.length > 50 }) invalid()
+    }
+    private fun invalid(): Nothing =
+        throw BridgeException(BridgeError.INVALID_REQUEST, "Chọn 1–3 thẻ trong ngữ cảnh hiện tại.")
 }
 
