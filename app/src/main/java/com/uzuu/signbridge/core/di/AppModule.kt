@@ -28,41 +28,49 @@ object AppModule {
     }
 
     @Provides
+    @Singleton
     fun provideConversationRepository(container: AppContainer): ConversationRepository {
         return container.conversation
     }
 
     @Provides
+    @Singleton
     fun provideTranslationRepository(container: AppContainer): TranslationRepository {
         return container.translation
     }
 
     @Provides
+    @Singleton
     fun provideDeviceRepository(container: AppContainer): DeviceRepository {
         return container.device
     }
 
     @Provides
+    @Singleton
     fun provideCameraPreviewController(container: AppContainer): CameraPreviewController {
         return container.cameraPreview
     }
 
     @Provides
+    @Singleton
     fun provideSendChipsUseCase(container: AppContainer): SendChipsUseCase {
         return container.sendChips
     }
 
     @Provides
+    @Singleton
     fun provideRecognizeSignUseCase(container: AppContainer): RecognizeSignUseCase {
         return container.recognizeSign
     }
 
     @Provides
+    @Singleton
     fun provideSummarizeSpeechUseCase(container: AppContainer): SummarizeSpeechUseCase {
         return container.summarizeSpeech
     }
 
     @Provides
+    @Singleton
     fun provideSpeakQuickReplyUseCase(container: AppContainer): SpeakQuickReplyUseCase {
         return container.speakQuickReply
     }

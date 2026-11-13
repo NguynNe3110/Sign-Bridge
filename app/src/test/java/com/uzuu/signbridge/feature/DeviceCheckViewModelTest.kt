@@ -73,5 +73,23 @@ class DeviceCheckViewModelTest {
         advanceUntilIdle()
         assertEquals(ServiceContext.PUBLIC, vm.state.value.session?.context)
     }
+
+    @Test fun cancelledHoldCannotSubmitWhenFingerIsReleased() = runTest(dispatcher) {
+        val local = MemoryConversation()
+        val remote = StubTranslation()
+        val device = StubDevice()
+        val vm = DeviceCheckViewModel(local, remote, device, SendChipsUseCase(local, remote),
+            RecognizeSignUseCase(local, remote), SummarizeSpeechUseCase(local, remote),
+            SpeakQuickReplyUseCase(local, device))
+        advanceUntilIdle()
+        vm.onEvent(DeviceCheckUiEvent.StartRecording)
+        assertEquals(DeviceOperation.RECORDING, vm.state.value.operation)
+        vm.onEvent(DeviceCheckUiEvent.CancelCapture)
+        vm.onEvent(DeviceCheckUiEvent.FinishRecording)
+        advanceUntilIdle()
+        assertTrue(device.cancelled)
+        assertTrue(vm.state.value.isIdle)
+        assertTrue(local.turns.isEmpty())
+    }
 }
 

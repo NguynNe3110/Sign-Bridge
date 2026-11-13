@@ -35,6 +35,12 @@ class DeviceCheckViewModel(
             is DeviceCheckUiEvent.ShowMessage -> mutableState.update { it.copy(message = event.message) }
             is DeviceCheckUiEvent.CameraReady -> mutableState.update { it.copy(cameraReady = event.ready) }
             DeviceCheckUiEvent.Backgrounded -> cancelWork()
+            DeviceCheckUiEvent.CancelCapture -> {
+                if (state.value.operation in setOf(DeviceOperation.CAPTURING_SIGN, DeviceOperation.RECORDING)) {
+                    cancelWork()
+                    mutableState.update { it.copy(message = "Đã hủy thu. Giữ nút tại chỗ để ghi, hoặc cuộn để xem phần khác.") }
+                }
+            }
             DeviceCheckUiEvent.FinishSign -> finishSign()
             DeviceCheckUiEvent.FinishRecording -> finishRecording()
             else -> if (state.value.isIdle) handleIdleEvent(event)

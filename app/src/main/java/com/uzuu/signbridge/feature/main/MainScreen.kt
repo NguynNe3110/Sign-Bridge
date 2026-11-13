@@ -65,3 +65,11 @@ fun MainScreen(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+fun MainScreenPreview() {
+    com.uzuu.signbridge.ui.theme.SignBridgeTheme {
+        MainScreen(onOpenDeviceCheck = {})
+    }
+}

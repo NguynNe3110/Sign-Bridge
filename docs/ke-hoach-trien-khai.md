@@ -8,8 +8,8 @@ Nguồn đối chiếu: `Mo_ta_y_tuong.docx` §5–8, §11–15; `luong-xu-ly-ch
 
 | Quyết định | Trạng thái | Hệ quả triển khai |
 |---|---|---|
-| Kotlin/Android, XML hiện có, package `com.uzuu.signbridge` | Đã xác định từ repo | Không đưa Expo/React Native vào Android; giữ XML |
-| MVVM-basic, manual DI | Quy ước dự án | `feature` → usecase/repository interface → `data`; nối tại `core/di` |
+| Kotlin/Android, package `com.uzuu.signbridge` | Đã xác định từ repo | Không đưa Expo/React Native vào Android; TV2 giữ màn kiểm tra Fragment/XML |
+| MVVM-basic, `AppContainer` | Quy ước tại thời điểm bắt đầu | `feature` → usecase/repository interface → `data`; nối tại `core/di` |
 | Nguyên = TV2 | Người dùng xác nhận | Triển khai thiết bị, storage, client API và bàn giao cho TV1 |
 | `/api/health`, `/api/sign`, `/api/expand`, `/api/summarize` | Đề xuất từ Markdown | Client theo hợp đồng này, backend cần xác nhận; không coi đã có server chạy |
 | 4 frame/1,5 giây; 4–16 frame; ngưỡng 0,7 | Đề xuất từ Markdown | Đóng gói thành policy để đổi khi team chốt |
@@ -17,6 +17,8 @@ Nguồn đối chiếu: `Mo_ta_y_tuong.docx` §5–8, §11–15; `luong-xu-ly-ch
 | Chia đôi 180°, màn quản lý thẻ/lịch sử hoàn chỉnh | Phạm vi TV1 | TV2 cung cấp state/event và màn tích hợp tối thiểu; TV1 hoàn thiện trải nghiệm |
 
 Trong tài liệu gốc, camera là “nên có”; tài liệu luồng nâng camera thành đầu vào chính. Kế hoạch giữ camera theo quyết định mới, nhưng ưu tiên đường thẻ/offline luôn sử dụng được. Những chỗ nói “backend repo này” và `expo-*` trong docs cũ không mô tả repo Android hiện tại.
+
+Trong lúc triển khai, luồng setup song song bổ sung Compose/Hilt trên nhánh `setup/tech-stack-compose-hilt`; Nguyên xác nhận tiếp tục phối hợp trên nhánh này. Launcher mới dùng Compose và mở màn kiểm tra TV2 qua Fragment. `AppModule` của luồng setup cung cấp lại dependency từ cùng `AppContainer`; không tạo graph thiết bị/storage thứ hai. Kế hoạch TV2 giữ nguyên các interface/usecase thuần Kotlin để TV1 dùng từ Compose.
 
 ## Yêu cầu và nghiệm thu
 
@@ -65,3 +67,5 @@ Lỗi network/timeout/AI unavailable cho phép gửi **thẻ** bằng câu mẫu
 - Integration test SQLite: seed idempotent, thêm/xóa thẻ, transaction, đóng/mở DB giữ nguyên lịch sử.
 - Client test: JSON UTF-8, multipart fields, error code và response hỏng với local mock server.
 - Chạy build debug, unit tests và lint. Báo chính xác giới hạn nếu không có emulator/điện thoại; không coi test JVM là bằng chứng camera/AI thật hoạt động.
+
+Kết quả thực hiện TV2 và phần còn cần kiểm tra với backend/điện thoại thật: [ket-qua-kiem-tra-tv2.md](ket-qua-kiem-tra-tv2.md).

@@ -10,12 +10,14 @@ import android.text.style.StyleSpan
 import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -49,6 +51,13 @@ class DeviceCheckFragment : Fragment(R.layout.fragment_device_check) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val ui = FragmentDeviceCheckBinding.bind(view)
         binding = ui
+        // This Fragment can be hosted by the Compose entry Activity with edge-to-edge enabled.
+        ViewCompat.setOnApplyWindowInsetsListener(ui.root) { root, insets ->
+            val safeArea = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
+            root.setPadding(safeArea.left, safeArea.top, safeArea.right, safeArea.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(ui.root)
         listOf(ui.pageHeading, ui.chipsHeading, ui.devicesHeading, ui.outgoingHeading,
             ui.incomingHeading, ui.historyHeading).forEach { ViewCompat.setAccessibilityHeading(it, true) }
         chipSignature = null; replySignature = null; suggestionSignature = null
@@ -125,6 +134,10 @@ class DeviceCheckFragment : Fragment(R.layout.fragment_device_check) {
     @SuppressLint("ClickableViewAccessibility") // Explicit click/key toggle complements push-to-talk touch.
     private fun bindCaptureButton(button: MaterialButton, sign: Boolean) {
         var skipClick = false
+        var dragged = false
+        var startX = 0f
+        var startY = 0f
+        val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
         button.setOnClickListener {
             if (skipClick) { skipClick = false; return@setOnClickListener }
             val operation = viewModel.state.value.operation
@@ -134,20 +147,34 @@ class DeviceCheckFragment : Fragment(R.layout.fragment_device_check) {
         button.setOnTouchListener { view, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    dragged = false
+                    startX = event.rawX
+                    startY = event.rawY
                     view.parent.requestDisallowInterceptTouchEvent(true)
                     beginCapture(sign)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     view.parent.requestDisallowInterceptTouchEvent(false)
-                    endCapture(sign)
-                    skipClick = true
-                    view.performClick()
+                    if (!dragged) {
+                        endCapture(sign)
+                        skipClick = true
+                        view.performClick()
+                    }
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!dragged && (kotlin.math.abs(event.rawX - startX) > touchSlop ||
+                        kotlin.math.abs(event.rawY - startY) > touchSlop)) {
+                        dragged = true
+                        view.parent.requestDisallowInterceptTouchEvent(false)
+                        viewModel.onEvent(DeviceCheckUiEvent.CancelCapture)
+                    }
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     view.parent.requestDisallowInterceptTouchEvent(false)
-                    viewModel.onEvent(DeviceCheckUiEvent.Backgrounded)
+                    viewModel.onEvent(DeviceCheckUiEvent.CancelCapture)
                     true
                 }
                 else -> true

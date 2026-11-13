@@ -2,7 +2,7 @@
 
 ## Phạm vi đã code
 
-Nguyên phụ trách Camera, ghi âm, TTS, SQLite, offline và API client. Repo giữ Kotlin/XML, MVVM-basic và manual DI. Màn `DeviceCheckFragment` là nơi kiểm tra tích hợp để TV1 tham khảo; chưa phải giao diện split-screen cuối cùng.
+Nguyên phụ trách Camera, ghi âm, TTS, SQLite, offline và API client. Phần TV2 dùng MVVM-basic và `AppContainer`; màn `DeviceCheckFragment` là nơi kiểm tra tích hợp để TV1 tham khảo, chưa phải giao diện split-screen cuối cùng. Luồng setup song song đã thêm launcher Compose và Hilt; `AppModule` cung cấp cùng dependency từ `AppContainer`, không nhân đôi database/camera/recorder.
 
 | Phần | Điểm vào | Hành vi |
 |---|---|---|
@@ -27,6 +27,8 @@ Các interface/model/usecase ở `domain` thuần Kotlin. SQLite/OkHttp/MediaRec
 7. `speak` hoàn tất mới là tín hiệu “đã phát xong”; TV1 có thể rung tại thời điểm này. State mẫu có `speechCompletedCount`; nếu dùng counter cho hiệu ứng, lấy giá trị ban đầu khi bắt đầu collect để tránh rung lại sau resume. Bắt đầu mic là thời điểm TV1 phát rung báo chiều về.
 8. `SpeechSummary` chứa transcript, summary, highlights, iconCode và 3 replies. Mapper bỏ highlight không nằm nguyên văn trong summary, không tự sửa số hoặc tự tóm tắt lại ở mobile. TV1 map iconCode sang icon và hỗ trợ mở transcript đầy đủ.
 9. Hiển thị history từ SQLite; camera/audio không được ghi vào MessageTurn. `rawInput` là nhãn thẻ/gloss hoặc transcript; `processedText` là câu/tóm tắt thực nhận.
+
+Với màn Compose mới, dùng repository/usecase được Hilt cung cấp vào ViewModel và collect state bằng `collectAsStateWithLifecycle()`. Preview có thể dùng `AndroidView` chứa CameraX `PreviewView`, bind theo lifecycle và unbind khi dispose. Không đưa `PreviewView`, `LifecycleOwner` hoặc `NavController` vào ViewModel. Fragment kiểm tra tự xử lý nền kín và system/IME insets để không vẽ chồng màn Compose bên dưới.
 
 ## Cấu hình trên máy mỗi người
 
@@ -73,4 +75,6 @@ Chạy kiểm tra tự động:
 ```
 
 Test dùng server local giả chỉ để kiểm tra giao thức; không phải bằng chứng AI thật hoặc camera/mic/TTS trên điện thoại đã đạt tiêu chí demo.
+
+Kết quả build/test/lint và các bước đã chạy trên emulator: [ket-qua-kiem-tra-tv2.md](ket-qua-kiem-tra-tv2.md).
 

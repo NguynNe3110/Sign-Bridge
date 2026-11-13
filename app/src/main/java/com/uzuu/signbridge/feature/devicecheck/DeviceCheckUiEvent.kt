@@ -19,5 +19,6 @@ sealed interface DeviceCheckUiEvent {
     data object Replay : DeviceCheckUiEvent
     data object RetryLoad : DeviceCheckUiEvent
     data object Backgrounded : DeviceCheckUiEvent
+    data object CancelCapture : DeviceCheckUiEvent
 }
 
