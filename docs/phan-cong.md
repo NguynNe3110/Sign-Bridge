@@ -29,16 +29,16 @@
 
 ## 3. TV1 — Mobile UI/UX Accessibility
 
-- [ ] Màn chọn ngữ cảnh: Quán ăn, Hiệu thuốc, Hành chính, Tự do.
-- [ ] Màn Split-Screen: nửa trên xoay 180° cho nhân viên, nửa dưới cho người khiếm thính.
-- [ ] Nửa dưới — nút nhấn giữ **Ký hiệu**.
-- [ ] Nửa dưới — bảng thẻ từ khóa, chọn 1–3 thẻ.
-- [ ] Nửa dưới — vùng hiện `glosses` + `suggestedChips` khi `confidence` thấp.
-- [ ] Nửa dưới — vùng tóm tắt: `summary` chữ lớn, tô đậm `highlights`, icon theo `iconCode`, 3 nút `quickReplies`.
-- [ ] Nửa trên — `spoken_sentence` cỡ lớn + nút nhấn giữ **Mic**.
-- [ ] Màn thêm/xoá thẻ cá nhân.
-- [ ] Rung khi phát loa xong và khi nhân viên bắt đầu nói.
-- [ ] Chữ lớn, tương phản cao; hai người đối diện đọc rõ mà không xoay máy.
+- [x] Màn chọn ngữ cảnh: Quán ăn, Hiệu thuốc, Hành chính, Tự do.
+- [x] Màn Split-Screen: nửa trên xoay 180° cho nhân viên, nửa dưới cho người khiếm thính.
+- [x] Nửa dưới — nút nhấn giữ **Ký hiệu**.
+- [x] Nửa dưới — bảng thẻ từ khóa, chọn 1–3 thẻ.
+- [x] Nửa dưới — vùng hiện `glosses` + `suggestedChips` khi `confidence` thấp.
+- [x] Nửa dưới — vùng tóm tắt: `summary` chữ lớn, tô đậm `highlights`, icon theo `iconCode`, 3 nút `quickReplies`.
+- [x] Nửa trên — `spoken_sentence` cỡ lớn + nút nhấn giữ **Mic**.
+- [x] Màn thêm/xoá thẻ cá nhân.
+- [x] Rung khi phát loa xong và khi nhân viên bắt đầu nói.
+- [x] Chữ lớn, tương phản cao; hai người đối diện đọc rõ mà không xoay máy.
 
 ---
 
