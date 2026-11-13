@@ -69,4 +69,15 @@
     <string name="error_mic_permission">Cần quyền micro để ghi lời nói. Cấp quyền trong Cài đặt nếu đã từ chối vĩnh viễn, rồi nhấn giữ lại.</string>
     <string name="camera_hold_again">Camera đã mở. Giữ nút Ký hiệu lần nữa, ít nhất 1,5 giây.</string>
     <string name="camera_preparing">Đang mở camera. Nếu camera không sẵn sàng, hãy dùng thẻ.</string>
+    <string name="server_title">Kết nối máy chủ</string>
+    <string name="server_description">Nhập IP của thiết bị chạy backend. Nếu backend chạy trên laptop, nhập IP laptop; không nhập IP điện thoại đang dùng app.</string>
+    <string name="server_active">Địa chỉ đã lưu</string>
+    <string name="server_not_set">Chưa lưu máy chủ trong app</string>
+    <string name="server_ip_label">IPv4 máy chủ</string>
+    <string name="server_port_label">Cổng (mặc định 8080)</string>
+    <string name="server_https">Dùng HTTPS</string>
+    <string name="server_network_hint">Với backend nội bộ: hai thiết bị cùng Wi-Fi, backend đang chạy và cổng cho phép kết nối. Emulator Android thường dùng IP 10.0.2.2 để gọi máy tính.</string>
+    <string name="server_save">Lưu và kết nối</string>
+    <string name="server_check">Chỉ kiểm tra kết nối</string>
+    <string name="server_save_hint">Địa chỉ được giữ sau khi đóng app. Lưu xong, các yêu cầu tiếp theo dùng máy chủ mới ngay; không cần cài lại app.</string>
 </resources>
