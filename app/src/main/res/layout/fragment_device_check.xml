@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/device_check_padding">
+
+        <TextView android:id="@+id/page_heading" style="@style/DeviceCheckHeading" android:text="@string/device_check_title" />
+        <TextView style="@style/DeviceCheckBody" android:text="@string/device_check_description" />
+        <TextView style="@style/DeviceCheckSection" android:text="@string/context_label" android:labelFor="@id/context_spinner" />
+        <Spinner android:id="@+id/context_spinner" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/device_check_touch" />
+
+        <TextView android:id="@+id/status_text" style="@style/DeviceCheckBody" android:accessibilityLiveRegion="polite" android:text="@string/device_loading" android:paddingVertical="12dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/retry_load" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/retry_data" android:visibility="gone" />
+
+        <TextView android:id="@+id/chips_heading" style="@style/DeviceCheckSection" android:text="@string/chips_title" />
+        <TextView style="@style/DeviceCheckBody" android:text="@string/chips_help" />
+        <com.google.android.material.chip.ChipGroup android:id="@+id/chips" android:layout_width="match_parent" android:layout_height="wrap_content" app:chipSpacingHorizontal="8dp" app:chipSpacingVertical="4dp" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/new_chip_hint" android:layout_marginTop="12dp">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/new_chip" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textCapSentences" android:maxLength="50" android:maxLines="2" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/add_chip" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/add_chip" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/delete_chip" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/delete_chip" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/send_chips" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/send_chips" />
+
+        <TextView android:id="@+id/devices_heading" style="@style/DeviceCheckSection" android:text="@string/devices_title" />
+        <TextView style="@style/DeviceCheckBody" android:text="@string/media_privacy" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/open_camera" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/open_camera" />
+        <androidx.camera.view.PreviewView android:id="@+id/camera_preview" android:layout_width="match_parent" android:layout_height="220dp" android:visibility="gone" android:importantForAccessibility="no" app:implementationMode="compatible" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/sign_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/hold_sign" android:contentDescription="@string/sign_accessibility" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/mic_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/hold_mic" android:contentDescription="@string/mic_accessibility" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/health_button" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/check_health" />
+
+        <TextView android:id="@+id/outgoing_heading" style="@style/DeviceCheckSection" android:text="@string/outgoing_title" />
+        <TextView android:id="@+id/outgoing_text" style="@style/DeviceCheckResult" android:text="@string/outgoing_empty" android:textIsSelectable="true" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/replay_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/replay" />
+        <TextView android:id="@+id/sign_result" style="@style/DeviceCheckBody" android:visibility="gone" />
+        <com.google.android.material.chip.ChipGroup android:id="@+id/suggestions" android:layout_width="match_parent" android:layout_height="wrap_content" app:chipSpacingHorizontal="8dp" />
+
+        <TextView android:id="@+id/incoming_heading" style="@style/DeviceCheckSection" android:text="@string/incoming_title" />
+        <TextView android:id="@+id/summary_text" style="@style/DeviceCheckResult" android:text="@string/incoming_empty" android:textIsSelectable="true" />
+        <TextView android:id="@+id/transcript_text" style="@style/DeviceCheckBody" android:textIsSelectable="true" />
+        <LinearLayout android:id="@+id/quick_replies" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+        <TextView android:id="@+id/history_heading" style="@style/DeviceCheckSection" android:text="@string/history_title" />
+        <TextView android:id="@+id/history_text" style="@style/DeviceCheckBody" android:text="@string/history_empty" android:textIsSelectable="true" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

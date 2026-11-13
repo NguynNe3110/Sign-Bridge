@@ -1,0 +1,7 @@
+# Shared project settings stay in gradle.properties.
+# Put this optional setting in your USER Gradle file instead:
+# Windows: %USERPROFILE%/.gradle/gradle.properties
+# macOS / Linux: ~/.gradle/gradle.properties
+# Do not replace the project's gradle.properties with this example.
+# Emulator -> host machine example; physical devices need a reachable server URL.
+signbridge.apiBaseUrl=http://10.0.2.2:8080/
