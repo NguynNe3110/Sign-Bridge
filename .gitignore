@@ -13,6 +13,10 @@ captures/
 *.aab
 *.hprof
 
+# Python caches from bundled reference tools
+__pycache__/
+*.py[cod]
+
 # Machine-specific Android SDK configuration
 local.properties
 
