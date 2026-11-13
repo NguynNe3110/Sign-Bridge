@@ -16,6 +16,8 @@ import com.uzuu.signbridge.feature.chip.ChipManageViewModel
 import com.uzuu.signbridge.feature.context.ContextSelectScreen
 import com.uzuu.signbridge.feature.conversation.ConversationScreen
 import com.uzuu.signbridge.feature.conversation.ConversationViewModel
+import com.uzuu.signbridge.feature.server.ServerScreen
+import com.uzuu.signbridge.feature.server.ServerViewModel
 
 @Composable
 fun AppNavHost(
@@ -33,7 +35,13 @@ fun AppNavHost(
         composable(Routes.CONTEXT_SELECT) {
             ContextSelectScreen(
                 onContextSelected = { navController.navigate(Routes.conversation(it)) },
+                onServerSettings = { navController.navigate(Routes.SERVER_SETTINGS) },
             )
+        }
+
+        composable(Routes.SERVER_SETTINGS) {
+            val viewModel: ServerViewModel = viewModel(factory = container.serverViewModelFactory)
+            ServerScreen(viewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.CONVERSATION, arguments = contextArgument) { entry ->

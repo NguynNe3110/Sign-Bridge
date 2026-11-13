@@ -4,6 +4,21 @@ Spring Boot 4.1 · Java 21+. Đặc tả API: `docs/luong-xu-ly-chinh.md` mục 
 
 ## Chạy
 
+### Cấu hình địa chỉ từ app Android
+
+Tại màn chọn ngữ cảnh, chọn **Kết nối máy chủ** → nhập **IPv4 của thiết bị chạy backend** và cổng (mặc định `8080`) → **Lưu và kết nối**. Địa chỉ được lưu trên điện thoại, áp dụng cho các yêu cầu API tiếp theo mà không rebuild hay khởi động lại app.
+
+- Điện thoại thật: nhập IP LAN của laptop/server, hai thiết bị cùng mạng Wi-Fi. Không nhập IP điện thoại trừ khi backend chạy ngay trên điện thoại đó.
+- Emulator Android: dùng `10.0.2.2` để gọi backend trên máy tính.
+- Không thêm `http://`, `:8080` hoặc `/api` vào ô IPv4; cổng có ô riêng, app tự thêm đường dẫn `/api`.
+- HTTP hỗ trợ IPv4 nội bộ/loopback; bật **Dùng HTTPS** nếu server dùng TLS (chứng chỉ cần hợp lệ cho địa chỉ được nhập). Các URL HTTP công cộng vẫn bị chặn ở bản release.
+- **Chỉ kiểm tra kết nối** gọi `GET /api/health` với địa chỉ đang nhập và kiểm tra `status=UP`, không thay máy chủ đang dùng. **Lưu và kết nối** áp dụng địa chỉ ngay, kể cả khi backend đang offline; app hiển thị rõ kết quả.
+- Nếu không kết nối được: kiểm tra backend đang chạy, đang lắng nghe trên giao diện LAN (không chỉ `127.0.0.1`), cổng và firewall. Nhập IP không tự tạo/chạy backend.
+
+`signbridge.apiBaseUrl` khi build vẫn dùng làm giá trị dự phòng nếu app chưa lưu địa chỉ riêng. Cấu hình đã lưu trong app được ưu tiên.
+
+### Chạy service backend (trong repo backend riêng)
+
 ```bash
 ./mvnw spring-boot:run          # cổng 8080, ai.mode=mock (trả JSON mẫu)
 ./mvnw test

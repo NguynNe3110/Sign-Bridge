@@ -2,11 +2,14 @@ package com.uzuu.signbridge.data.remote.api
 
 import com.uzuu.signbridge.domain.model.BridgeError
 import com.uzuu.signbridge.domain.model.BridgeException
+import com.uzuu.signbridge.domain.model.ServerAddress
 import java.io.IOException
 import java.io.InterruptedIOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -20,14 +23,18 @@ class BridgeApi(
     private val client: OkHttpClient,
     private val baseUrl: String,
     private val allowHttp: Boolean,
+    private val baseUrlProvider: () -> String = { baseUrl },
+    private val allowLocalHttp: Boolean = false,
 ) {
-    suspend fun request(path: String, body: RequestBody? = null): JSONObject {
+    suspend fun request(path: String, body: RequestBody? = null): JSONObject = withContext(Dispatchers.IO) {
+        val baseUrl = baseUrlProvider()
         if (baseUrl.isBlank()) {
             throw BridgeException(BridgeError.NOT_CONFIGURED, "Chưa cấu hình server. Bạn vẫn có thể gửi thẻ ở chế độ offline.")
         }
         val base = baseUrl.toHttpUrlOrNull()
             ?: throw BridgeException(BridgeError.NOT_CONFIGURED, "Địa chỉ server không hợp lệ.")
-        if ((!allowHttp && base.scheme != "https") || base.query != null || base.fragment != null ||
+        val localHttp = allowLocalHttp && ServerAddress.isLocalIpv4(base.host)
+        if ((!allowHttp && !localHttp && base.scheme != "https") || base.query != null || base.fragment != null ||
             base.username.isNotEmpty() || base.password.isNotEmpty()) {
             throw BridgeException(BridgeError.NOT_CONFIGURED, "Server cần URL hợp lệ và HTTPS cho bản release.")
         }
@@ -35,7 +42,7 @@ class BridgeApi(
         val request = Request.Builder().url(url).header("Accept", "application/json").apply {
             if (body != null) post(body) else get()
         }.build()
-        return try { client.newCall(request).await().use {
+        try { client.newCall(request).await().use {
             val raw = it.body?.string().orEmpty()
             if (!it.isSuccessful) {
                 val code = runCatching { JSONObject(raw).getJSONObject("error").getString("code") }.getOrNull()

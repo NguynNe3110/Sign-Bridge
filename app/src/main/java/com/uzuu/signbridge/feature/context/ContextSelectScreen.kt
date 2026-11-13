@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import com.uzuu.signbridge.ui.theme.Dimens
 fun ContextSelectScreen(
     onContextSelected: (ContextType) -> Unit,
     modifier: Modifier = Modifier,
+    onServerSettings: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -53,6 +55,10 @@ fun ContextSelectScreen(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline,
         )
+        OutlinedButton(onClick = onServerSettings,
+            modifier = Modifier.fillMaxWidth().heightIn(min = Dimens.TouchTarget)) {
+            Text(stringResource(R.string.server_title))
+        }
         ContextType.entries.forEach { context ->
             ContextCard(context = context, onClick = { onContextSelected(context) })
         }
