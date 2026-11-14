@@ -17,7 +17,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        val apiBaseUrl = providers.gradleProperty("signbridge.apiBaseUrl").orElse("").get()
+        val apiBaseUrl = providers.gradleProperty("signbridge.apiBaseUrl")
+            .orElse("https://tartness-humbling-backboned.ngrok-free.dev/")
+            .get()
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "").replace("\r", "")}\"")
     }
 

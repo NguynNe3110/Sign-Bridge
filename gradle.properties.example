@@ -3,5 +3,6 @@
 # Windows: %USERPROFILE%/.gradle/gradle.properties
 # macOS / Linux: ~/.gradle/gradle.properties
 # Do not replace the project's gradle.properties with this example.
-# Emulator -> host machine example; physical devices need a reachable server URL.
-signbridge.apiBaseUrl=http://10.0.2.2:8080/
+# Current public HTTPS backend; omit /api because the app adds endpoint paths.
+signbridge.apiBaseUrl=https://tartness-humbling-backboned.ngrok-free.dev/
+# For a local backend on the emulator's host machine, override with http://10.0.2.2:8080/.

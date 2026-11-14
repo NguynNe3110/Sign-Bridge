@@ -15,7 +15,9 @@ Tại màn chọn ngữ cảnh, chọn **Kết nối máy chủ** → nhập **I
 - **Chỉ kiểm tra kết nối** gọi `GET /api/health` với địa chỉ đang nhập và kiểm tra `status=UP`, không thay máy chủ đang dùng. **Lưu và kết nối** áp dụng địa chỉ ngay, kể cả khi backend đang offline; app hiển thị rõ kết quả.
 - Nếu không kết nối được: kiểm tra backend đang chạy, đang lắng nghe trên giao diện LAN (không chỉ `127.0.0.1`), cổng và firewall. Nhập IP không tự tạo/chạy backend.
 
-`signbridge.apiBaseUrl` khi build vẫn dùng làm giá trị dự phòng nếu app chưa lưu địa chỉ riêng. Cấu hình đã lưu trong app được ưu tiên.
+URL mặc định khi build là `https://tartness-humbling-backboned.ngrok-free.dev/`. App tự thêm `/api` cho các endpoint. Có thể ghi đè bằng Gradle property `signbridge.apiBaseUrl` (xem `gradle.properties.example`).
+
+URL khi build chỉ được dùng nếu app chưa lưu địa chỉ riêng. Cấu hình đã lưu trong app được ưu tiên; màn **Kết nối máy chủ** hiện chỉ hỗ trợ IPv4 và cổng, chưa nhận URL ngrok.
 
 ### Chạy service backend (trong repo backend riêng)
 
