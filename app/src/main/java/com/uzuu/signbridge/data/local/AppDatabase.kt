@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 class AppDatabase(context: Context, name: String = "signbridge.db") :
-    SQLiteOpenHelper(context.applicationContext, name, null, 1) {
+    SQLiteOpenHelper(context.applicationContext, name, null, 2) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -17,7 +17,9 @@ class AppDatabase(context: Context, name: String = "signbridge.db") :
             id TEXT PRIMARY KEY, contextId TEXT NOT NULL REFERENCES ContextPreset(id),
             label TEXT NOT NULL COLLATE NOCASE CHECK(length(label) BETWEEN 1 AND 50),
             category TEXT NOT NULL, usageCount INTEGER NOT NULL DEFAULT 0 CHECK(usageCount >= 0),
-            isPersonal INTEGER NOT NULL DEFAULT 0, labelKey TEXT NOT NULL, UNIQUE(contextId, labelKey))""")
+            isPersonal INTEGER NOT NULL DEFAULT 0, labelKey TEXT NOT NULL,
+            remoteId TEXT, localLabelOverride INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(contextId, labelKey))""")
         db.execSQL("""CREATE TABLE ConversationSession (
             id TEXT PRIMARY KEY, contextId TEXT NOT NULL REFERENCES ContextPreset(id),
             startedAt INTEGER NOT NULL, status TEXT NOT NULL)""")
@@ -33,6 +35,10 @@ class AppDatabase(context: Context, name: String = "signbridge.db") :
             arrayOf("PUBLIC", "Hành chính", "DOCUMENT", "public"),
             arrayOf("CUSTOM", "Tự do", "INFO", "custom"),
         ).forEach { db.execSQL("INSERT INTO ContextPreset VALUES (?, ?, ?, ?)", it) }
+        insertDefaultChips(db)
+    }
+
+    private fun insertDefaultChips(db: SQLiteDatabase) {
         val seed = mapOf(
             "CAFE" to listOf(
                 "Cà phê sữa", "Ít ngọt", "Mang đi", "Hỏi giá", "Thanh toán",
@@ -58,7 +64,7 @@ class AppDatabase(context: Context, name: String = "signbridge.db") :
         seed.forEach { (context, labels) ->
             labels.forEachIndexed { index, label ->
                 db.execSQL(
-                    "INSERT INTO QuickChip(id, contextId, label, category, labelKey) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT OR IGNORE INTO QuickChip(id, contextId, label, category, labelKey) VALUES (?, ?, ?, ?, ?)",
                     arrayOf("seed_${context}_$index", context, label,
                         if (index == 0) "SUBJECT" else if (index == 1) "DETAIL" else "ACTION",
                         label.lowercase(java.util.Locale.ROOT)),
@@ -68,8 +74,12 @@ class AppDatabase(context: Context, name: String = "signbridge.db") :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Add explicit, non-destructive migrations when the schema version changes.
-        error("Missing database migration $oldVersion → $newVersion")
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE QuickChip ADD COLUMN remoteId TEXT")
+            db.execSQL("ALTER TABLE QuickChip ADD COLUMN localLabelOverride INTEGER NOT NULL DEFAULT 0")
+            // Original preset IDs remain stable; existing labels, usage and personal cards stay intact.
+            insertDefaultChips(db)
+        }
     }
 }
 
