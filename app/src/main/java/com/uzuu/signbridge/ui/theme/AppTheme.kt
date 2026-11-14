@@ -10,9 +10,12 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 
 val DarkColors: ColorScheme = darkColorScheme(
     primary = DarkAccent,
@@ -110,4 +113,24 @@ fun AppTheme(
         ),
         content = content,
     )
+}
+
+@Preview(name = "Light Theme", showBackground = true)
+@Composable
+private fun LightThemePreview() {
+    AppTheme(darkTheme = false) {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Text("SignBridge Light", color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+}
+
+@Preview(name = "Dark Theme", showBackground = true)
+@Composable
+private fun DarkThemePreview() {
+    AppTheme(darkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Text("SignBridge Dark", color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
 }
