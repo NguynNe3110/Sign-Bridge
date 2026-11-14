@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import com.uzuu.signbridge.ui.theme.Dimens
 
 /**
- * Thẻ từ khóa chữ lớn. [order] là thứ tự chọn (1..3) hiện ở góc trái khi đã chọn.
+ * Thẻ từ khóa chữ lớn. [order] là thứ tự chọn hiện ở góc trái khi đã chọn.
  */
 @Composable
 fun KeywordChip(

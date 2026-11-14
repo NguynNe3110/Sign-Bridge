@@ -278,7 +278,7 @@ internal fun ChipBoard(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceS)) {
         Text(
-            text = stringResource(R.string.deaf_chips_title),
+            text = stringResource(R.string.deaf_chips_title, ConversationUiState.MAX_SELECTED_CHIPS),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

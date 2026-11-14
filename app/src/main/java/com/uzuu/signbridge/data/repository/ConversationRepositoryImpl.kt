@@ -18,6 +18,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -36,7 +38,14 @@ class ConversationRepositoryImpl(
         io: CoroutineDispatcher,
     ) : this(dao, null, null, io)
     private val revision = MutableStateFlow(0L)
-    override fun observeChips(context: ServiceContext) = revision.map { getChips(context) }
+    override fun observeChips(context: ServiceContext) = flow {
+        emit(cachedChips(context))
+        getChips(context)
+        emitAll(revision.map { cachedChips(context) })
+    }
+
+    private suspend fun cachedChips(context: ServiceContext) =
+        storage { dao.chips(context.name).map { it.toDomain() } }
     override suspend fun createSession(context: ServiceContext) = storage {
         ConversationSession(UUID.randomUUID().toString(), context, System.currentTimeMillis()).also {
             dao.createSession(it.id, context.name, it.startedAt)
@@ -53,7 +62,7 @@ class ConversationRepositoryImpl(
                 val dtos = (0 until array.length()).map { array.getJSONObject(it).toChipResponseDto() }
                 if (dtos.isNotEmpty()) {
                     dao.syncChips(context.name, dtos.map { it.toEntity() })
-                    return@withContext dtos.map { it.toDomain() }
+                    revision.update { it + 1 }
                 }
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -78,7 +87,7 @@ class ConversationRepositoryImpl(
                 val res = api.request("chips", requestBody, mapOf("X-User-Id" to userId))
                 val dto = res.toChipResponseDto()
                 storage {
-                    try { dao.insertChip(dto.toEntity()) } catch (_: SQLiteConstraintException) {}
+                    dao.insertChip(dto.toEntity(), remoteId = dto.id)
                 }
                 revision.update { it + 1 }
                 return@withContext dto.toDomain()
@@ -96,34 +105,7 @@ class ConversationRepositoryImpl(
 
     override suspend fun updateChip(id: String, label: String): Unit = withContext(io) {
         val normalized = normalizedLabel(label)
-        if (api != null && session != null) {
-            val userId = session.userId
-            val existing = storage { dao.chip(id) }
-            val contextName = existing?.contextId ?: "CUSTOM"
-
-            if (existing?.isPersonal == true) {
-                val deleteRes = api.delete("chips/$id?user_id=$userId", mapOf("X-User-Id" to userId))
-                if (!deleteRes.optBoolean("success", false)) {
-                    throw BridgeException(BridgeError.INVALID_REQUEST, "Không thể cập nhật thẻ cá nhân.")
-                }
-                storage { dao.deletePersonalChip(id) }
-            }
-
-            val json = JSONObject().apply {
-                put("text", normalized)
-                put("context", contextName)
-                put("user_id", userId)
-            }
-            val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-            val res = api.request("chips", requestBody, mapOf("X-User-Id" to userId))
-            val dto = res.toChipResponseDto()
-            storage {
-                try { dao.insertChip(dto.toEntity()) } catch (_: SQLiteConstraintException) {}
-            }
-            revision.update { it + 1 }
-            return@withContext
-        }
-
+        // OpenAPI 1.3 exposes no update endpoint. Preserve identity and avoid a destructive delete/create.
         storage {
             try {
                 if (!dao.updateChip(id, normalized)) {
@@ -145,9 +127,14 @@ class ConversationRepositoryImpl(
     }
 
     override suspend fun deletePersonalChip(id: String): Unit = withContext(io) {
-        if (api != null && session != null) {
+        val existing = storage { dao.chip(id) }
+        if (existing?.isPersonal != true) {
+            throw BridgeException(BridgeError.INVALID_REQUEST, "Chỉ có thể xóa thẻ cá nhân còn tồn tại.")
+        }
+        val remoteId = storage { dao.remoteChipId(id) }
+        if (api != null && session != null && remoteId != null) {
             val userId = session.userId
-            val res = api.delete("chips/$id?user_id=$userId", mapOf("X-User-Id" to userId))
+            val res = api.delete("chips/$remoteId?user_id=$userId", mapOf("X-User-Id" to userId))
             if (!res.optBoolean("success", false)) {
                 throw BridgeException(BridgeError.INVALID_REQUEST, "Chỉ có thể xóa thẻ cá nhân còn tồn tại.")
             }

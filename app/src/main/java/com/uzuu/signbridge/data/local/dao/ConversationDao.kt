@@ -49,31 +49,45 @@ class ConversationDao(private val database: AppDatabase) {
             } else null
         }
 
-    fun insertChip(chip: QuickChipEntity) {
+    fun insertChip(chip: QuickChipEntity, remoteId: String? = null) {
         database.writableDatabase.execSQL(
-            "INSERT INTO QuickChip(id, contextId, label, category, isPersonal, labelKey) VALUES (?, ?, ?, ?, 1, ?)",
-            arrayOf(chip.id, chip.contextId, chip.label, chip.category, chip.label.lowercase(java.util.Locale.ROOT)),
+            "INSERT INTO QuickChip(id, contextId, label, category, usageCount, isPersonal, labelKey, remoteId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            arrayOf<Any?>(chip.id, chip.contextId, chip.label, chip.category, chip.usageCount,
+                if (chip.isPersonal) 1 else 0, chip.label.lowercase(java.util.Locale.ROOT), remoteId),
         )
     }
+
+    fun remoteChipId(id: String): String? = database.readableDatabase.rawQuery(
+        "SELECT remoteId FROM QuickChip WHERE id = ?", arrayOf(id),
+    ).use { if (it.moveToFirst()) it.getString(0) else null }
 
     fun syncChips(context: String, chips: List<QuickChipEntity>) {
         val db = database.writableDatabase
         db.beginTransaction()
         try {
-            db.delete("QuickChip", "contextId = ?", arrayOf(context))
-            for (chip in chips) {
-                db.execSQL(
-                    "INSERT INTO QuickChip(id, contextId, label, category, usageCount, isPersonal, labelKey) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    arrayOf(
-                        chip.id,
-                        chip.contextId,
-                        chip.label,
-                        chip.category,
-                        chip.usageCount,
-                        if (chip.isPersonal) 1 else 0,
-                        chip.label.lowercase(java.util.Locale.ROOT),
-                    ),
-                )
+            // The API may include shared CUSTOM cards. Never insert them into another context.
+            for (chip in chips.filter { it.contextId == context }) {
+                val existing = db.rawQuery(
+                    "SELECT id, label, usageCount, localLabelOverride FROM QuickChip " +
+                        "WHERE contextId = ? AND (id = ? OR remoteId = ? OR labelKey = ?) " +
+                        "ORDER BY CASE WHEN id = ? THEN 0 WHEN remoteId = ? THEN 1 ELSE 2 END LIMIT 1",
+                    arrayOf(context, chip.id, chip.id, chip.label.lowercase(java.util.Locale.ROOT), chip.id, chip.id),
+                ).use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val id = cursor.text("id")
+                        // Preserve preset IDs and local edits. Only an unedited remote row follows server text.
+                        val label = if (id == chip.id && cursor.number("localLabelOverride") == 0L) chip.label
+                            else cursor.text("label")
+                        db.update("QuickChip", ContentValues().apply {
+                            put("label", label)
+                            put("labelKey", label.lowercase(java.util.Locale.ROOT))
+                            put("usageCount", maxOf(cursor.number("usageCount").toInt(), chip.usageCount))
+                            put("remoteId", chip.id)
+                        }, "id = ?", arrayOf(id))
+                        true
+                    } else false
+                }
+                if (!existing) insertChip(chip, remoteId = chip.id)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -85,6 +99,7 @@ class ConversationDao(private val database: AppDatabase) {
         database.writableDatabase.update("QuickChip", ContentValues().apply {
             put("label", label)
             put("labelKey", label.lowercase(java.util.Locale.ROOT))
+            put("localLabelOverride", 1)
         }, "id = ?", arrayOf(id)) > 0
 
     fun deletePersonalChip(id: String): Boolean =

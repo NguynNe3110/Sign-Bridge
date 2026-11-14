@@ -24,7 +24,7 @@ class ConversationViewModel(
     private val recognizeSign: RecognizeSignUseCase,
     private val composeSign: ComposeSignUseCase,
     private val summarizeSpeech: SummarizeSpeechUseCase,
-    private val speakReply: SpeakQuickReplyUseCase,
+    @Suppress("unused") private val speakReply: SpeakQuickReplyUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ConversationUiState(context = context, isInitializing = true,
         isOnDeviceSign = deviceRepository.supportsOnDeviceSign))
@@ -47,7 +47,8 @@ class ConversationViewModel(
                             if (previous != null) chips.firstOrNull { it.id == previous.id }?.label
                             else label.takeIf { candidate ->
                                 chips.any { it.label == candidate } ||
-                                    state.pendingSign?.suggestedChips?.contains(candidate) == true
+                                    state.pendingSign?.suggestedChips?.contains(candidate) == true ||
+                                    state.summary?.quickReplies?.contains(candidate) == true
                             }
                         }.distinct()
                         state.copy(chips = chips, selectedChips = selected)
@@ -215,21 +216,10 @@ class ConversationViewModel(
         val state = uiState.value
         val currentSession = session ?: return
         if (state.selectedChips.isEmpty()) return
-        val quickReplies = state.summary?.quickReplies.orEmpty()
-        val isSingleQuickReply = state.selectedChips.size == 1 &&
-            (state.selectedChips.single() in quickReplies ||
-             (state.selectedChips.single() !in state.chips.map { it.label } &&
-              state.selectedChips.single() !in state.pendingSign?.suggestedChips.orEmpty()))
-        if (isSingleQuickReply) {
-            val reply = state.selectedChips.single()
-            _uiState.update { it.copy(spokenSentence = reply, isSpeaking = true, isOffline = false,
-                selectedChips = emptyList(), pendingSign = null) }
-            runTask(false) { speakReply(currentSession, reply); speechFinished() }
-            return
-        }
         _uiState.update { it.copy(isExpanding = true, deafError = null, deafErrorMessage = null) }
         runTask(false) {
-            val result = sendChips.fromLabels(currentSession, state.selectedChips, state.summary?.summary)
+            val incoming = state.summary?.summary?.ifBlank { null } ?: state.summary?.transcript?.ifBlank { null }
+            val result = sendChips.fromLabels(currentSession, state.selectedChips, incoming)
             displayAndSpeak(result.sentence, result.isOffline)
         }
     }
@@ -251,13 +241,6 @@ class ConversationViewModel(
             val result = summarizeSpeech(currentSession, audio, uiState.value.spokenSentence.ifBlank { null })
             _uiState.update { it.copy(summary = result, pendingSign = null, recognizedGlosses = emptyList()) }
         }
-    }
-
-    private fun quickReply(reply: String) {
-        val currentSession = session ?: return
-        _uiState.update { it.copy(spokenSentence = reply, isSpeaking = true, isOffline = false,
-            selectedChips = emptyList(), pendingSign = null) }
-        runTask(false) { speakReply(currentSession, reply); speechFinished() }
     }
 
     private fun speechFinished() {
