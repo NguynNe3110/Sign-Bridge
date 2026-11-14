@@ -50,8 +50,8 @@ fun ErrorBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.CornerRadius),
-        color = MaterialTheme.colorScheme.error,
-        contentColor = MaterialTheme.colorScheme.onError,
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
     ) {
         Row(
             modifier = Modifier.padding(start = Dimens.SpaceL),
@@ -61,7 +61,7 @@ fun ErrorBanner(
             Spacer(Modifier.width(Dimens.SpaceS))
             Text(
                 text = stringResource(error.messageRes()),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = Dimens.SpaceM),

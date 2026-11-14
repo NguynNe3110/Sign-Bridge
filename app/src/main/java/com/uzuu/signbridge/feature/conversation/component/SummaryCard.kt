@@ -3,6 +3,8 @@ package com.uzuu.signbridge.feature.conversation.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +42,7 @@ import com.uzuu.signbridge.ui.theme.Dimens
 import com.uzuu.signbridge.ui.theme.SummaryStyle
 
 /** Tóm tắt lời nhân viên: icon + chữ lớn tô đậm số liệu + 3 nút trả lời nhanh. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SummaryCard(
     summary: SummaryResult,
@@ -48,7 +51,7 @@ fun SummaryCard(
     quickRepliesEnabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
-    val highlightColor = colors.primary
+    val highlightColor = colors.onSurface
     val text = remember(summary, highlightColor) {
         buildHighlightedSummary(summary.summary, summary.highlights, highlightColor)
     }
@@ -57,21 +60,20 @@ fun SummaryCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.CornerRadius),
         color = colors.surface,
-        border = BorderStroke(Dimens.BorderWidth, colors.secondary),
     ) {
         Column(modifier = Modifier.padding(Dimens.SpaceL)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = summary.iconCode.toImageVector(),
-                    contentDescription = summary.iconCode,
-                    tint = colors.secondary,
+                    contentDescription = null,
+                    tint = colors.onSurfaceVariant,
                     modifier = Modifier.size(Dimens.SummaryIconSize),
                 )
                 Spacer(Modifier.width(Dimens.SpaceM))
                 Text(
                     text = stringResource(R.string.deaf_summary_title),
                     style = MaterialTheme.typography.titleMedium,
-                    color = colors.secondary,
+                    color = colors.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.size(Dimens.SpaceM))
@@ -82,22 +84,24 @@ fun SummaryCard(
                 Text(
                     text = stringResource(R.string.deaf_quick_replies),
                     style = MaterialTheme.typography.labelMedium,
-                    color = colors.outline,
+                    color = colors.onSurfaceVariant,
                 )
                 Spacer(Modifier.size(Dimens.SpaceS))
-                Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceS)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceS),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.SpaceS),
+                ) {
                     summary.quickReplies.forEach { reply ->
                         OutlinedButton(
                             onClick = { onQuickReply(reply) },
                             enabled = quickRepliesEnabled,
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .heightIn(min = Dimens.TouchTarget),
                             shape = RoundedCornerShape(Dimens.CornerRadius),
-                            border = BorderStroke(Dimens.BorderWidth, colors.primary),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primary),
+                            border = BorderStroke(Dimens.BorderWidth, colors.outline),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurface),
                         ) {
-                            Text(text = reply, style = MaterialTheme.typography.titleMedium)
+                            Text(text = reply, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -116,7 +120,7 @@ private fun buildHighlightedSummary(
         addStyle(
             style = SpanStyle(
                 color = highlightColor,
-                fontWeight = FontWeight.ExtraBold,
+                fontWeight = FontWeight.Bold,
                 textDecoration = TextDecoration.Underline,
             ),
             start = range.first,

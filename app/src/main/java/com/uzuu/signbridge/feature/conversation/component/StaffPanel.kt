@@ -31,10 +31,8 @@ import androidx.compose.ui.semantics.semantics
 import com.uzuu.signbridge.R
 import com.uzuu.signbridge.core.result.ErrorCode
 import com.uzuu.signbridge.ui.component.button.HoldButton
-import com.uzuu.signbridge.ui.theme.AccentCyan
 import com.uzuu.signbridge.ui.theme.Dimens
 import com.uzuu.signbridge.ui.theme.SpokenSentenceStyle
-import com.uzuu.signbridge.ui.theme.StaffZoneBackground
 
 /**
  * Nửa trên dành cho nhân viên. Màn hình cha xoay 180° để nhân viên ngồi đối diện đọc được.
@@ -59,10 +57,9 @@ fun StaffPanel(
 ) {
     Column(
         modifier = modifier
-            .background(StaffZoneBackground)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(Dimens.ScreenPadding),
     ) {
-        if (isOffline) Text(stringResource(R.string.staff_offline), color = AccentCyan)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -73,16 +70,16 @@ fun StaffPanel(
                 Text(
                     text = stringResource(R.string.staff_label_customer_says),
                     style = MaterialTheme.typography.titleMedium,
-                    color = AccentCyan,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
                 if (isSpeaking) {
-                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = AccentCyan)
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
                     Spacer(Modifier.width(Dimens.SpaceXs))
                     Text(
                         text = stringResource(R.string.staff_speaking),
                         style = MaterialTheme.typography.labelMedium,
-                        color = AccentCyan,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (canReplay) {
                     TextButton(onClick = onReplay) {
@@ -93,6 +90,14 @@ fun StaffPanel(
                 }
             }
             Spacer(Modifier.size(Dimens.SpaceS))
+            if (isOffline) {
+                Text(
+                    stringResource(R.string.staff_offline),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Spacer(Modifier.size(Dimens.SpaceS))
+            }
 
             val sentenceText = when {
                 isCustomerSigning -> stringResource(R.string.staff_customer_signing)
@@ -105,7 +110,7 @@ fun StaffPanel(
                 color = if (spokenSentence.isNotBlank() && !isCustomerSigning) {
                     MaterialTheme.colorScheme.onBackground
                 } else {
-                    MaterialTheme.colorScheme.outline
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
@@ -140,7 +145,8 @@ fun StaffPanel(
                 onPressStart = onMicPressed,
                 onPressEnd = onMicReleased,
                 onPressCancel = onCaptureCancelled,
-                idleContainerColor = AccentCyan,
+                idleContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                idleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
     }

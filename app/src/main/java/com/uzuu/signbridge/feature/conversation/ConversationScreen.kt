@@ -106,7 +106,7 @@ fun ConversationContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(Dimens.ZoneDividerHeight)
-                .background(MaterialTheme.colorScheme.primary),
+                .background(MaterialTheme.colorScheme.outlineVariant),
         )
         DeafPanel(
             state = state,

@@ -1,6 +1,5 @@
 package com.uzuu.signbridge.ui.component.button
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -24,13 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.uzuu.signbridge.ui.theme.Dimens
-import com.uzuu.signbridge.ui.theme.RecordingRed
-import com.uzuu.signbridge.ui.theme.White
+import com.uzuu.signbridge.ui.theme.Recording
+import com.uzuu.signbridge.ui.theme.OnRecording
 
 /**
  * Nút nhấn giữ (push-to-talk / push-to-sign).
@@ -56,12 +56,12 @@ fun HoldButton(
 
     val containerColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceVariant
-        isActive -> RecordingRed
+        isActive -> Recording
         else -> idleContainerColor
     }
     val contentColor = when {
-        !enabled -> MaterialTheme.colorScheme.outline
-        isActive -> White
+        !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        isActive -> OnRecording
         else -> idleContentColor
     }
 
@@ -84,13 +84,13 @@ fun HoldButton(
             .heightIn(min = Dimens.HoldButtonHeight)
             .semantics {
                 role = Role.Button
+                if (!enabled) disabled()
                 if (enabled) onClick { if (isActive) currentOnEnd() else currentOnStart(); true }
             }
             .then(gestureModifier),
         shape = RoundedCornerShape(Dimens.CornerRadius),
         color = containerColor,
         contentColor = contentColor,
-        border = if (isActive) BorderStroke(Dimens.BorderWidth, White) else null,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = Dimens.SpaceL, vertical = Dimens.SpaceM),

@@ -37,6 +37,7 @@
     <string name="deaf_unknown_gloss">\?</string>
     <string name="deaf_chips_title">Thẻ từ khóa (chọn 1–3)</string>
     <string name="deaf_selected">Đã chọn %1$d/%2$d</string>
+    <string name="deaf_selection_count">%1$d/%2$d</string>
     <string name="deaf_send_chips">Nói câu này</string>
     <string name="deaf_clear_chips">Bỏ chọn</string>
     <string name="deaf_no_chips">Chưa có thẻ. Vào Quản lý thẻ để thêm.</string>
@@ -51,8 +52,8 @@
     <string name="error_generic">Có lỗi xảy ra, vui lòng thử lại.</string>
 
     <!-- Quản lý thẻ -->
-    <string name="chip_manage_title">Thẻ cá nhân · %1$s</string>
-    <string name="chip_manage_input_label">Thẻ mới (vd: Dị ứng penicillin)</string>
+    <string name="chip_manage_input_label">Thẻ mới</string>
+    <string name="chip_manage_input_hint">Ví dụ: Dị ứng penicillin</string>
     <string name="chip_manage_add">Thêm</string>
     <string name="chip_manage_personal">Thẻ của bạn</string>
     <string name="chip_manage_preset">Thẻ có sẵn</string>
@@ -80,4 +81,6 @@
     <string name="server_save">Lưu và kết nối</string>
     <string name="server_check">Chỉ kiểm tra kết nối</string>
     <string name="server_save_hint">Địa chỉ được giữ sau khi đóng app. Lưu xong, các yêu cầu tiếp theo dùng máy chủ mới ngay; không cần cài lại app.</string>
+    <string name="server_help_show">Hướng dẫn kết nối</string>
+    <string name="server_help_hide">Ẩn hướng dẫn</string>
 </resources>

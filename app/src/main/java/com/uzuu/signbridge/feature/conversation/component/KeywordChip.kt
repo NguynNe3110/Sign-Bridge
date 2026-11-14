@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,8 +37,12 @@ fun KeywordChip(
             .heightIn(min = Dimens.TouchTarget)
             .semantics { this.selected = selected },
         shape = RoundedCornerShape(Dimens.CornerRadius),
-        color = if (selected) colors.primary else colors.surface,
-        contentColor = if (selected) colors.onPrimary else colors.onSurface,
+        color = if (selected) colors.primaryContainer else colors.surface,
+        contentColor = when {
+            !enabled -> colors.onSurface.copy(alpha = 0.38f)
+            selected -> colors.onPrimaryContainer
+            else -> colors.onSurface
+        },
         border = BorderStroke(Dimens.BorderWidth, if (selected) colors.primary else colors.outline),
     ) {
         Row(
@@ -47,16 +50,10 @@ fun KeywordChip(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (selected && order != null) {
-                Surface(shape = CircleShape, color = colors.onPrimary, contentColor = colors.primary) {
-                    Text(
-                        text = order.toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = Dimens.SpaceS),
-                    )
-                }
+                Text(text = order.toString(), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.width(Dimens.SpaceS))
             }
-            Text(text = label, style = MaterialTheme.typography.titleMedium)
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }

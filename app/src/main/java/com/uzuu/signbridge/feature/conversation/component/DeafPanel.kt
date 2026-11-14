@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -25,13 +25,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.uzuu.signbridge.R
@@ -40,9 +41,6 @@ import com.uzuu.signbridge.feature.conversation.ConversationUiState
 import com.uzuu.signbridge.ui.component.button.HoldButton
 import com.uzuu.signbridge.ui.component.text.labelRes
 import com.uzuu.signbridge.ui.icon.AppIcons
-import com.uzuu.signbridge.ui.icon.toImageVector
-import com.uzuu.signbridge.ui.theme.AccentCyan
-import com.uzuu.signbridge.ui.theme.DeafZoneBackground
 import com.uzuu.signbridge.ui.theme.Dimens
 
 /** Nửa dưới dành cho người khiếm thính: tóm tắt, xác nhận ký hiệu, thẻ từ khóa, nút Ký hiệu. */
@@ -65,7 +63,7 @@ fun DeafPanel(
 ) {
     Column(
         modifier = modifier
-            .background(DeafZoneBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.SpaceS),
     ) {
         Header(state = state, onBack = onBack, onManageChips = onManageChips)
@@ -104,7 +102,7 @@ fun DeafPanel(
                 state.recognizedGlosses.isNotEmpty() -> Text(
                     text = stringResource(R.string.deaf_understood, state.recognizedGlosses.joinToString(" · ")),
                     style = MaterialTheme.typography.titleMedium,
-                    color = AccentCyan,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -114,6 +112,7 @@ fun DeafPanel(
             )
         }
 
+        Spacer(Modifier.size(Dimens.SpaceS))
         if (state.selectedChips.isNotEmpty()) {
             SelectionBar(
                 count = state.selectedChips.size,
@@ -133,6 +132,16 @@ fun DeafPanel(
             onPressStart = onSignPressed,
             onPressEnd = onSignReleased,
             onPressCancel = onCaptureCancelled,
+            idleContainerColor = if (state.selectedChips.isEmpty()) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            idleContentColor = if (state.selectedChips.isEmpty()) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
         )
     }
 }
@@ -147,12 +156,6 @@ private fun Header(
         IconButton(onClick = onBack, modifier = Modifier.size(Dimens.TouchTarget)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
         }
-        Icon(
-            imageVector = state.context.toImageVector(),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.width(Dimens.SpaceS))
         Text(
             text = stringResource(state.context.labelRes()),
             style = MaterialTheme.typography.titleLarge,
@@ -174,12 +177,16 @@ private fun StatusRow(text: String, showProgress: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showProgress) {
-            CircularProgressIndicator(modifier = Modifier.size(Dimens.ButtonIconSize), color = AccentCyan)
+            CircularProgressIndicator(modifier = Modifier.size(Dimens.ButtonIconSize))
         } else {
-            Icon(Icons.Filled.Hearing, contentDescription = null, tint = AccentCyan)
+            Icon(Icons.Filled.Hearing, contentDescription = null)
         }
         Spacer(Modifier.width(Dimens.SpaceM))
-        Text(text = text, style = MaterialTheme.typography.titleLarge, color = AccentCyan)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -199,12 +206,12 @@ private fun PendingSignSection(
                 pending.glosses.joinToString(" · ") { if (it == SignResult.UNKNOWN_GLOSS) unknown else it },
             ),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = stringResource(R.string.deaf_unsure_title),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceS),
@@ -234,7 +241,7 @@ private fun ChipBoard(
         Text(
             text = stringResource(R.string.deaf_chips_title),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.outline,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (state.chips.isEmpty()) {
             Text(stringResource(R.string.deaf_no_chips), style = MaterialTheme.typography.bodyMedium)
@@ -266,18 +273,23 @@ private fun SelectionBar(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceS),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(R.string.deaf_selected, count, ConversationUiState.MAX_SELECTED_CHIPS),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.weight(1f),
+        val selectionDescription = stringResource(
+            R.string.deaf_selected, count, ConversationUiState.MAX_SELECTED_CHIPS,
         )
-        OutlinedButton(
+        Text(
+            text = stringResource(R.string.deaf_selection_count, count, ConversationUiState.MAX_SELECTED_CHIPS),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { contentDescription = selectionDescription },
+        )
+        TextButton(
             onClick = onClear,
             enabled = enabled,
             modifier = Modifier.heightIn(min = Dimens.TouchTarget),
+            contentPadding = PaddingValues(horizontal = Dimens.SpaceS, vertical = Dimens.SpaceM),
             shape = RoundedCornerShape(Dimens.CornerRadius),
         ) {
             Text(stringResource(R.string.deaf_clear_chips), style = MaterialTheme.typography.labelMedium)
@@ -285,11 +297,10 @@ private fun SelectionBar(
         Button(
             onClick = onSend,
             enabled = enabled,
-            modifier = Modifier.heightIn(min = Dimens.TouchTarget),
+            modifier = Modifier.weight(1f).heightIn(min = Dimens.TouchTarget),
+            contentPadding = PaddingValues(horizontal = Dimens.SpaceM, vertical = Dimens.SpaceM),
             shape = RoundedCornerShape(Dimens.CornerRadius),
         ) {
-            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-            Spacer(Modifier.width(Dimens.SpaceS))
             Text(stringResource(R.string.deaf_send_chips), style = MaterialTheme.typography.labelLarge)
         }
     }
