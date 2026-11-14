@@ -35,6 +35,7 @@ class SignCameraDataSource(
     private var preview: Preview? = null
     private var analyzer: ImageAnalysis? = null
     private var bound = false
+    private var bindingGeneration = 0
     private var generation = 0
     private var capturing = false
     private var clipMode = false
@@ -49,11 +50,13 @@ class SignCameraDataSource(
 
     @SuppressLint("MissingPermission") // Permission is requested by the host before bind.
     override fun bind(owner: LifecycleOwner, surface: Preview.SurfaceProvider, rotation: Int, onReady: (Result<Unit>) -> Unit) {
+        unbind()
+        val bindingToken = bindingGeneration
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
-            if (owner.lifecycle.currentState == Lifecycle.State.DESTROYED) return@addListener
+            // A pending provider must not reopen a camera that the user has already closed.
+            if (bindingToken != bindingGeneration || owner.lifecycle.currentState == Lifecycle.State.DESTROYED) return@addListener
             try {
-                unbind()
                 val cameraProvider = future.get()
                 val cameraPreview = Preview.Builder().build().also { it.setSurfaceProvider(surface) }
                 val analysis = ImageAnalysis.Builder()
@@ -70,12 +73,14 @@ class SignCameraDataSource(
                 if (supportsOnDeviceSign) executor.execute { runCatching { recognizer?.prepare() } }
                 onReady(Result.success(Unit))
             } catch (error: Exception) {
+                unbind()
                 onReady(Result.failure(BridgeException(BridgeError.DEVICE, "Không mở được camera trước. Bạn có thể dùng thẻ.", error)))
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
     override fun unbind() {
+        bindingGeneration++
         cancel()
         synchronized(lock) { bound = false }
         analyzer?.clearAnalyzer()
