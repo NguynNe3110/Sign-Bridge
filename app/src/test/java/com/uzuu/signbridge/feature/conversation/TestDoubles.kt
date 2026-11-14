@@ -86,6 +86,10 @@ class StubChipRepository(initial: List<QuickChip> = emptyList()) : ConversationR
         if (failStorage) throw BridgeException(BridgeError.STORAGE, "test storage")
         chips.value = chips.value.filterNot { it.id == id && it.isPersonal }
     }
+    override suspend fun updateChip(id: String, label: String) {
+        if (failStorage) throw BridgeException(BridgeError.STORAGE, "test storage")
+        chips.value = chips.value.map { if (it.id == id) it.copy(label = label) else it }
+    }
     override suspend fun getHistory(limit: Int) = savedTurns.takeLast(limit)
     override suspend fun appendTurn(
         sessionId: String, direction: Direction, rawInput: String, processedText: String,

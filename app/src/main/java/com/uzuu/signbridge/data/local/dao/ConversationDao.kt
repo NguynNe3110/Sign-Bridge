@@ -41,6 +41,37 @@ class ConversationDao(private val database: AppDatabase) {
         )
     }
 
+    fun syncChips(context: String, chips: List<QuickChipEntity>) {
+        val db = database.writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("QuickChip", "contextId = ?", arrayOf(context))
+            for (chip in chips) {
+                db.execSQL(
+                    "INSERT INTO QuickChip(id, contextId, label, category, usageCount, isPersonal, labelKey) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    arrayOf(
+                        chip.id,
+                        chip.contextId,
+                        chip.label,
+                        chip.category,
+                        chip.usageCount,
+                        if (chip.isPersonal) 1 else 0,
+                        chip.label.lowercase(java.util.Locale.ROOT),
+                    ),
+                )
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun updateChip(id: String, label: String): Boolean =
+        database.writableDatabase.update("QuickChip", ContentValues().apply {
+            put("label", label)
+            put("labelKey", label.lowercase(java.util.Locale.ROOT))
+        }, "id = ?", arrayOf(id)) > 0
+
     fun deletePersonalChip(id: String): Boolean =
         database.writableDatabase.delete("QuickChip", "id = ? AND isPersonal = 1", arrayOf(id)) > 0
 

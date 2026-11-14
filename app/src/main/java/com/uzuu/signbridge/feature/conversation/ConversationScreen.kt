@@ -1,20 +1,12 @@
 package com.uzuu.signbridge.feature.conversation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -27,10 +19,7 @@ import com.uzuu.signbridge.domain.model.HighlightType
 import com.uzuu.signbridge.domain.model.IconCode
 import com.uzuu.signbridge.domain.model.QuickChip
 import com.uzuu.signbridge.domain.model.SummaryResult
-import com.uzuu.signbridge.feature.conversation.component.DeafPanel
-import com.uzuu.signbridge.feature.conversation.component.StaffPanel
 import com.uzuu.signbridge.ui.theme.AppTheme
-import com.uzuu.signbridge.ui.theme.Dimens
 
 @Composable
 fun ConversationScreen(
@@ -66,10 +55,7 @@ fun ConversationScreen(
     )
 }
 
-/**
- * Màn chia đôi: nửa trên xoay 180° cho nhân viên ngồi đối diện,
- * nửa dưới cho người khiếm thính. Hai người đọc được mà không cần xoay máy.
- */
+/** Layout selection is local UI state. Every view dispatches the same conversation events. */
 @Composable
 fun ConversationContent(
     state: ConversationUiState,
@@ -80,59 +66,52 @@ fun ConversationContent(
     onSignPressed: () -> Unit = { onEvent(ConversationUiEvent.SignPressed) },
     onMicPressed: () -> Unit = { onEvent(ConversationUiEvent.MicPressed) },
     cameraPreview: @Composable () -> Unit = {},
+    initialLayout: ConversationLayout = ConversationLayout.SHARED,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        StaffPanel(
-            spokenSentence = state.spokenSentence,
-            isCustomerSigning = state.isSigning || state.isRecognizing,
-            isSpeaking = state.isSpeaking,
-            isRecording = state.isStaffRecording,
-            isSummarizing = state.isSummarizing,
-            micEnabled = state.canStartMic,
-            canReplay = state.spokenSentence.isNotBlank() && !state.isBusy,
-            error = state.staffError,
-            errorMessage = state.staffErrorMessage,
-            showMicReadyHint = state.showMicReadyHint,
-            onMicPressed = onMicPressed,
-            onMicReleased = { onEvent(ConversationUiEvent.MicReleased) },
-            onReplay = { onEvent(ConversationUiEvent.ReplayClicked) },
-            onDismissError = { onEvent(ConversationUiEvent.StaffErrorDismissed) },
-            isOffline = state.isOffline,
-            onCaptureCancelled = { onEvent(ConversationUiEvent.CaptureCancelled) },
-            modifier = Modifier
-                .weight(0.42f)
-                .fillMaxWidth()
-                .rotate(180f),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Dimens.ZoneDividerHeight)
-                .background(MaterialTheme.colorScheme.outlineVariant),
-        )
-        DeafPanel(
-            state = state,
+    ConversationLayouts(
+        state = state,
+        actions = ConversationActions(
             onBack = onBack,
             onManageChips = onManageChips,
+            onMicPressed = onMicPressed,
+            onMicReleased = { onEvent(ConversationUiEvent.MicReleased) },
             onSignPressed = onSignPressed,
             onSignReleased = { onEvent(ConversationUiEvent.SignReleased) },
+            onReplay = { onEvent(ConversationUiEvent.ReplayClicked) },
             onChipToggled = { onEvent(ConversationUiEvent.ChipToggled(it)) },
             onClearChips = { onEvent(ConversationUiEvent.ClearChipsClicked) },
             onSendChips = { onEvent(ConversationUiEvent.SendChipsClicked) },
             onQuickReply = { onEvent(ConversationUiEvent.QuickReplyClicked(it)) },
-            onDismissError = { onEvent(ConversationUiEvent.DeafErrorDismissed) },
-            cameraPreview = cameraPreview,
+            onDismissStaffError = { onEvent(ConversationUiEvent.StaffErrorDismissed) },
+            onDismissDeafError = { onEvent(ConversationUiEvent.DeafErrorDismissed) },
             onCaptureCancelled = { onEvent(ConversationUiEvent.CaptureCancelled) },
-            modifier = Modifier
-                .weight(0.58f)
-                .fillMaxWidth(),
-        )
-    }
+        ),
+        cameraPreview = cameraPreview,
+        modifier = modifier,
+        initialLayout = initialLayout,
+    )
 }
 
-@Preview(heightDp = 800)
+@Preview(name = "Shared", group = "Conversation layouts", heightDp = 800)
 @Composable
 private fun ConversationContentPreview() {
+    ConversationLayoutPreview(ConversationLayout.SHARED)
+}
+
+@Preview(name = "Focused", group = "Conversation layouts", heightDp = 800)
+@Composable
+private fun FocusedConversationPreview() {
+    ConversationLayoutPreview(ConversationLayout.FOCUSED)
+}
+
+@Preview(name = "Across the table", group = "Conversation layouts", heightDp = 800)
+@Composable
+private fun TableConversationPreview() {
+    ConversationLayoutPreview(ConversationLayout.TABLE)
+}
+
+@Composable
+private fun ConversationLayoutPreview(layout: ConversationLayout) {
     AppTheme {
         ConversationContent(
             state = ConversationUiState(
@@ -158,6 +137,7 @@ private fun ConversationContentPreview() {
             onEvent = {},
             onBack = {},
             onManageChips = {},
+            initialLayout = layout,
         )
     }
 }

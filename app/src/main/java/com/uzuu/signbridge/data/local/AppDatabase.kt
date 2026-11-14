@@ -34,10 +34,26 @@ class AppDatabase(context: Context, name: String = "signbridge.db") :
             arrayOf("CUSTOM", "Tự do", "INFO", "custom"),
         ).forEach { db.execSQL("INSERT INTO ContextPreset VALUES (?, ?, ?, ?)", it) }
         val seed = mapOf(
-            "CAFE" to listOf("Cà phê sữa", "Ít ngọt", "Mang đi", "Hỏi giá", "Thanh toán"),
-            "PHARMACY" to listOf("Đau đầu", "Không buồn ngủ", "Uống sau ăn", "Hỏi giá", "Dị ứng"),
-            "PUBLIC" to listOf("CCCD", "Xác nhận cư trú", "Quầy nào", "Giấy tờ", "Cảm ơn"),
-            "CUSTOM" to listOf("Xin chào", "Cảm ơn", "Có", "Không", "Thanh toán"),
+            "CAFE" to listOf(
+                "Cà phê sữa", "Ít ngọt", "Mang đi", "Hỏi giá", "Thanh toán",
+                "Cà phê đen", "Trà đào", "Nước suối", "Ít đá", "Sinh tố bơ",
+                "Uống tại quán", "Cho xin mật khẩu wifi", "Cho xin thêm đá", "Chuyển khoản QR", "Cho mình xem menu",
+            ),
+            "PHARMACY" to listOf(
+                "Đau đầu", "Không buồn ngủ", "Uống sau ăn", "Hỏi giá", "Dị ứng",
+                "Bị sốt", "Đau họng", "Ho khan", "Sổ mũi", "Đau dạ dày",
+                "Thuốc nhỏ mắt", "Băng cá nhân", "Vitamin C", "Uống trước ăn", "Uống ngày mấy lần",
+            ),
+            "PUBLIC" to listOf(
+                "CCCD", "Xác nhận cư trú", "Quầy nào", "Giấy tờ", "Cảm ơn",
+                "Lấy số thứ tự", "Bao giờ có kết quả", "Nộp hồ sơ", "Xin mẫu đơn", "Công chứng giấy tờ",
+                "Lệ phí bao nhiêu", "Tôi cần gặp ai", "Thủ tục làm lại thẻ", "Chờ ở đâu", "Có cần ảnh thẻ không",
+            ),
+            "CUSTOM" to listOf(
+                "Xin chào", "Cảm ơn", "Có", "Không", "Thanh toán",
+                "Tôi là người khiếm thính", "Làm ơn viết ra giấy giúp tôi", "Xin lỗi làm phiền", "Chờ tôi một chút", "Tôi hiểu rồi",
+                "Tôi chưa hiểu", "Nhà vệ sinh ở đâu", "Giúp tôi với", "Bao nhiêu tiền", "Tạm biệt",
+            ),
         )
         seed.forEach { (context, labels) ->
             labels.forEachIndexed { index, label ->

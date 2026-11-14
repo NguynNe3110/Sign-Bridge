@@ -10,6 +10,7 @@ interface ConversationRepository {
     suspend fun getChips(context: ServiceContext): List<QuickChip>
     fun observeChips(context: ServiceContext): Flow<List<QuickChip>> = flow { emit(getChips(context)) }
     suspend fun addChip(context: ServiceContext, label: String, category: ChipCategory): QuickChip
+    suspend fun updateChip(id: String, label: String)
     suspend fun deletePersonalChip(id: String)
     suspend fun getHistory(limit: Int = 100): List<MessageTurn>
     suspend fun appendTurn(

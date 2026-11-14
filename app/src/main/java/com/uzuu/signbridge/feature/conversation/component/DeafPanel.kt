@@ -60,13 +60,17 @@ fun DeafPanel(
     modifier: Modifier = Modifier,
     cameraPreview: @Composable () -> Unit = {},
     onCaptureCancelled: () -> Unit = onSignReleased,
+    showHeader: Boolean = true,
+    header: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Dimens.ScreenPadding, vertical = Dimens.SpaceS),
     ) {
-        Header(state = state, onBack = onBack, onManageChips = onManageChips)
+        if (showHeader) {
+            if (header != null) header() else Header(state = state, onBack = onBack, onManageChips = onManageChips)
+        }
 
         Column(
             modifier = Modifier
@@ -75,42 +79,7 @@ fun DeafPanel(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceM),
         ) {
-            state.deafError?.let {
-                ErrorBanner(error = it, onDismiss = onDismissError, message = state.deafErrorMessage)
-            }
-            cameraPreview()
-
-            when {
-                state.isStaffRecording -> StatusRow(
-                    text = stringResource(R.string.deaf_staff_speaking),
-                    showProgress = false,
-                )
-                state.isSummarizing -> StatusRow(
-                    text = stringResource(R.string.deaf_processing_speech),
-                    showProgress = true,
-                )
-                state.summary != null -> SummaryCard(
-                    summary = state.summary,
-                    onQuickReply = onQuickReply,
-                    quickRepliesEnabled = !state.isBusy,
-                )
-            }
-
-            when {
-                state.isRecognizing -> StatusRow(stringResource(R.string.deaf_recognizing), showProgress = true)
-                state.isExpanding -> StatusRow(stringResource(R.string.deaf_expanding), showProgress = true)
-                state.pendingSign != null -> PendingSignSection(
-                    pending = state.pendingSign,
-                    selected = state.selectedChips,
-                    canSelectMore = state.canSelectMoreChips,
-                    onChipToggled = onChipToggled,
-                )
-                state.recognizedGlosses.isNotEmpty() -> Text(
-                    text = stringResource(R.string.deaf_understood, state.recognizedGlosses.joinToString(" · ")),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            CustomerMessages(state, onQuickReply, onChipToggled, onDismissError, cameraPreview)
 
             ChipBoard(
                 state = state,
@@ -148,6 +117,54 @@ fun DeafPanel(
             } else {
                 MaterialTheme.colorScheme.onSurface
             },
+        )
+    }
+}
+
+
+/** Message rendering shared by all layouts; no ViewModel or device work here. */
+@Composable
+internal fun CustomerMessages(
+    state: ConversationUiState,
+    onQuickReply: (String) -> Unit,
+    onChipToggled: (String) -> Unit,
+    onDismissError: () -> Unit,
+    cameraPreview: @Composable () -> Unit,
+) {
+    state.deafError?.let {
+        ErrorBanner(error = it, onDismiss = onDismissError, message = state.deafErrorMessage)
+    }
+    cameraPreview()
+
+    when {
+        state.isStaffRecording -> StatusRow(
+            text = stringResource(R.string.deaf_staff_speaking),
+            showProgress = false,
+        )
+        state.isSummarizing -> StatusRow(
+            text = stringResource(R.string.deaf_processing_speech),
+            showProgress = true,
+        )
+        state.summary != null -> SummaryCard(
+            summary = state.summary,
+            onQuickReply = onQuickReply,
+            quickRepliesEnabled = !state.isBusy,
+        )
+    }
+
+    when {
+        state.isRecognizing -> StatusRow(stringResource(R.string.deaf_recognizing), showProgress = true)
+        state.isExpanding -> StatusRow(stringResource(R.string.deaf_expanding), showProgress = true)
+        state.pendingSign != null -> PendingSignSection(
+            pending = state.pendingSign,
+            selected = state.selectedChips,
+            canSelectMore = state.canSelectMoreChips,
+            onChipToggled = onChipToggled,
+        )
+        state.recognizedGlosses.isNotEmpty() -> Text(
+            text = stringResource(R.string.deaf_understood, state.recognizedGlosses.joinToString(" · ")),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -239,7 +256,7 @@ private fun PendingSignSection(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChipBoard(
+internal fun ChipBoard(
     state: ConversationUiState,
     onChipToggled: (String) -> Unit,
 ) {
@@ -271,7 +288,7 @@ private fun ChipBoard(
 }
 
 @Composable
-private fun SelectionBar(
+internal fun SelectionBar(
     count: Int,
     enabled: Boolean,
     onClear: () -> Unit,

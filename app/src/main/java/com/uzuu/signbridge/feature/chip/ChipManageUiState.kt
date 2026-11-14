@@ -8,12 +8,15 @@ data class ChipManageUiState(
     val personalChips: List<QuickChip> = emptyList(),
     val presetChips: List<QuickChip> = emptyList(),
     val newLabel: String = "",
+    val editingChipId: String? = null,
+    val isSaving: Boolean = false,
     val inputError: ChipInputError? = null,
 )
 
 enum class ChipInputError {
     EMPTY,
     TOO_LONG,
+    INVALID_CHARACTERS,
     DUPLICATE,
     SAVE_FAILED,
 }

@@ -60,6 +60,58 @@ class ChipManageViewModelTest {
     }
 
     @Test
+    fun `edits preset in place and excludes itself from duplicate validation`() {
+        val vm = createViewModel()
+        vm.onEvent(ChipManageUiEvent.EditClicked("1"))
+        assertEquals("Mang đi", vm.uiState.value.newLabel)
+        vm.onEvent(ChipManageUiEvent.SaveEditClicked)
+        assertNull(vm.uiState.value.inputError)
+        vm.onEvent(ChipManageUiEvent.EditClicked("1"))
+        vm.onEvent(ChipManageUiEvent.NewLabelChanged("  Dùng tại quán  "))
+        vm.onEvent(ChipManageUiEvent.SaveEditClicked)
+        val chip = vm.uiState.value.presetChips.single()
+        assertEquals("1", chip.id)
+        assertEquals("Dùng tại quán", chip.label)
+        assertNull(vm.uiState.value.editingChipId)
+        assertEquals("", vm.uiState.value.newLabel)
+    }
+
+    @Test
+    fun `rejects duplicate edit then allows cancel without changing chip`() {
+        val vm = createViewModel()
+        vm.onEvent(ChipManageUiEvent.NewLabelChanged("Không đá"))
+        vm.onEvent(ChipManageUiEvent.AddClicked)
+        val id = vm.uiState.value.personalChips.single().id
+        vm.onEvent(ChipManageUiEvent.EditClicked(id))
+        vm.onEvent(ChipManageUiEvent.NewLabelChanged("MANG ĐI"))
+        vm.onEvent(ChipManageUiEvent.SaveEditClicked)
+        assertEquals(ChipInputError.DUPLICATE, vm.uiState.value.inputError)
+        assertEquals("Không đá", vm.uiState.value.personalChips.single().label)
+        vm.onEvent(ChipManageUiEvent.CancelEditClicked)
+        assertNull(vm.uiState.value.editingChipId)
+        assertNull(vm.uiState.value.inputError)
+        assertEquals("", vm.uiState.value.newLabel)
+        assertEquals("Không đá", vm.uiState.value.personalChips.single().label)
+    }
+
+    @Test
+    fun `failed edit keeps draft and original so save can be retried`() {
+        val vm = createViewModel()
+        vm.onEvent(ChipManageUiEvent.EditClicked("1"))
+        vm.onEvent(ChipManageUiEvent.NewLabelChanged("Tại quán"))
+        repository.failStorage = true
+        vm.onEvent(ChipManageUiEvent.SaveEditClicked)
+        assertEquals(ChipInputError.SAVE_FAILED, vm.uiState.value.inputError)
+        assertEquals("Tại quán", vm.uiState.value.newLabel)
+        assertEquals("1", vm.uiState.value.editingChipId)
+        assertTrue(!vm.uiState.value.isSaving)
+        assertEquals("Mang đi", vm.uiState.value.presetChips.single().label)
+        repository.failStorage = false
+        vm.onEvent(ChipManageUiEvent.SaveEditClicked)
+        assertEquals("Tại quán", vm.uiState.value.presetChips.single().label)
+    }
+
+    @Test
     fun `deletes chip`() {
         val vm = createViewModel()
         vm.onEvent(ChipManageUiEvent.NewLabelChanged("Thẻ cá nhân"))

@@ -10,6 +10,7 @@ import com.uzuu.signbridge.data.local.dao.ConversationDao
 import com.uzuu.signbridge.data.local.datasource.*
 import com.uzuu.signbridge.data.remote.api.BridgeApi
 import com.uzuu.signbridge.data.repository.*
+import com.uzuu.signbridge.data.session.UserSessionManager
 import com.uzuu.signbridge.domain.repository.*
 import com.uzuu.signbridge.domain.usecase.*
 import com.uzuu.signbridge.feature.devicecheck.DeviceCheckViewModel
@@ -28,7 +29,6 @@ class AppContainer(context: Context) {
     private val database = AppDatabase(appContext)
     private val camera = SignCameraDataSource(appContext)
     val cameraPreview: CameraPreviewController = camera
-    val conversation: ConversationRepository = ConversationRepositoryImpl(ConversationDao(database))
     // Direct AI requests include both speech recognition and LLM inference.
     private val httpClient = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
         .connectTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
@@ -38,12 +38,21 @@ class AppContainer(context: Context) {
         probe = { address -> TranslationRepositoryImpl(BridgeApi(httpClient, address.baseUrl,
             BuildConfig.DEBUG, allowLocalHttp = true)).checkHealth() },
     )
-    val translation: TranslationRepository = TranslationRepositoryImpl(BridgeApi(
+    val bridgeApi = BridgeApi(
         httpClient,
         BuildConfig.API_BASE_URL, BuildConfig.DEBUG,
         baseUrlProvider = { serverSettings.address.value?.baseUrl ?: BuildConfig.API_BASE_URL },
         allowLocalHttp = true,
-    ))
+    )
+    val userSession = UserSessionManager(
+        appContext.getSharedPreferences("user_session", Context.MODE_PRIVATE),
+    )
+    val conversation: ConversationRepository = ConversationRepositoryImpl(
+        dao = ConversationDao(database),
+        api = bridgeApi,
+        session = userSession,
+    )
+    val translation: TranslationRepository = TranslationRepositoryImpl(bridgeApi)
     val device: DeviceRepository = DeviceRepositoryImpl(
         camera, AudioRecorderDataSource(appContext), SpeechDataSource(appContext),
     )

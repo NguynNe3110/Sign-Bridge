@@ -39,7 +39,17 @@ class ConversationViewModel(
         viewModelScope.launch {
             try {
                 conversationRepository.observeChips(context).collect { chips ->
-                    _uiState.update { it.copy(chips = chips) }
+                    _uiState.update { state ->
+                        val selected = state.selectedChips.mapNotNull { label ->
+                            val previous = state.chips.firstOrNull { it.label == label }
+                            if (previous != null) chips.firstOrNull { it.id == previous.id }?.label
+                            else label.takeIf { candidate ->
+                                chips.any { it.label == candidate } ||
+                                    state.pendingSign?.suggestedChips?.contains(candidate) == true
+                            }
+                        }.distinct()
+                        state.copy(chips = chips, selectedChips = selected)
+                    }
                 }
             } catch (cancel: CancellationException) { throw cancel
             } catch (error: Exception) { showError(error, false) }

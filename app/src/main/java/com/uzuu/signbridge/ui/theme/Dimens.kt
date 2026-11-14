@@ -18,6 +18,7 @@ object Dimens {
     /** Vùng chạm tối thiểu, lớn hơn chuẩn 48dp cho người dùng thao tác nhanh. */
     val TouchTarget = 56.dp
     val HoldButtonHeight = 64.dp
+    val SharedHoldButtonHeight = 88.dp
     val ContextRowHeight = 88.dp
     val SummaryIconSize = 28.dp
     val ButtonIconSize = 24.dp

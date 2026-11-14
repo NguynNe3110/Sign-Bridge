@@ -13,6 +13,25 @@
     <string name="action_back">Quay lại</string>
     <string name="action_manage_chips">Quản lý thẻ</string>
     <string name="action_dismiss">Đóng</string>
+    <string name="layout_title">Bố cục hội thoại</string>
+    <string name="layout_change">Đổi bố cục, hiện tại: %1$s</string>
+    <string name="layout_shared">Hội thoại chung</string>
+    <string name="layout_shared_description">Cùng chiều đọc, dành trọn màn hình cho cuộc hội thoại. Phù hợp khi cầm hoặc chuyền máy.</string>
+    <string name="layout_focused">Theo vai</string>
+    <string name="layout_focused_description">Mỗi người dùng toàn màn hình, chuyển lượt qua tab Khách và Nhân viên.</string>
+    <string name="layout_table">Đối diện</string>
+    <string name="layout_table_description">Đặt máy giữa bàn. Phần nhân viên xoay ngược, có thể mở rộng khi cần đọc.</string>
+    <string name="layout_customer">Khách</string>
+    <string name="layout_staff">Nhân viên</string>
+    <string name="layout_expand_staff">Mở rộng phần nhân viên</string>
+    <string name="layout_shrink_staff">Thu gọn phần nhân viên</string>
+    <string name="shared_waiting">Chọn thẻ hoặc giữ nút Ký hiệu để bắt đầu.</string>
+    <string name="shared_hold_hint">Giữ nút để ghi</string>
+    <string name="shared_choose_chips">Chọn thẻ</string>
+    <string name="shared_sign_idle">Ký hiệu</string>
+    <string name="shared_sign_active">Thả để gửi</string>
+    <string name="shared_mic_idle">Nói</string>
+    <string name="shared_mic_active">Thả để gửi</string>
 
     <!-- Nửa trên: nhân viên -->
     <string name="staff_label_customer_says">Khách nói:</string>
@@ -59,11 +78,18 @@
     <string name="chip_manage_input_label">Thẻ mới</string>
     <string name="chip_manage_input_hint">Ví dụ: Dị ứng penicillin</string>
     <string name="chip_manage_add">Thêm</string>
+    <string name="chip_manage_edit">Sửa thẻ %1$s</string>
+    <string name="chip_manage_edit_label">Nội dung thẻ</string>
+    <string name="chip_manage_save">Lưu thay đổi</string>
+    <string name="chip_manage_saving">Đang lưu…</string>
+    <string name="chip_manage_cancel">Hủy sửa</string>
+    <string name="chip_manage_local_hint">Thẻ được đồng bộ với máy chủ. Nhấn nút sửa để đổi nội dung.</string>
     <string name="chip_manage_personal">Thẻ của bạn</string>
     <string name="chip_manage_preset">Thẻ có sẵn</string>
     <string name="chip_manage_empty">Chưa có thẻ cá nhân.</string>
     <string name="chip_manage_delete">Xoá thẻ %1$s</string>
     <string name="chip_error_empty">Vui lòng nhập nội dung thẻ.</string>
+    <string name="chip_error_invalid_characters">Nội dung thẻ không được chứa ký tự điều khiển.</string>
     <string name="chip_error_too_long">Tối đa %1$d ký tự.</string>
     <string name="chip_error_duplicate">Thẻ này đã có.</string>
     <string name="staff_offline">Ngoại tuyến · câu ghép từ thẻ</string>

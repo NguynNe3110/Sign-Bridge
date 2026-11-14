@@ -62,6 +62,41 @@ class ConversationStorageTest {
         assertEquals(0, repo.getChips(ServiceContext.CAFE).single { it.id == chip.id }.usageCount)
     }
 
+    @Test fun editsPersonalAndPresetPersistWithoutReseedingOrLosingMetadata() = runBlocking {
+        val personal = repo.addChip(ServiceContext.CAFE, "Không đường", ChipCategory.DETAIL)
+        val seed = repo.getChips(ServiceContext.CAFE).first { !it.isPersonal }
+        val session = repo.createSession(ServiceContext.CAFE)
+        repo.appendTurn(session.id, Direction.OUTGOING, personal.label, "Câu trước khi sửa",
+            usedChipIds = listOf(personal.id))
+        repo.updateChip(personal.id, "  Sữa hạt không đường  ")
+        repo.updateChip(seed.id, "Đồ uống mới")
+        db.close()
+        reopen()
+        val restored = repo.getChips(ServiceContext.CAFE)
+        assertEquals(personal.copy(label = "Sữa hạt không đường", usageCount = 1), restored.single { it.id == personal.id })
+        assertEquals(seed.copy(label = "Đồ uống mới"), restored.single { it.id == seed.id })
+        assertEquals("Câu trước khi sửa", repo.getHistory().single().processedText)
+    }
+
+    @Test fun invalidEditsLeaveOriginalUnchangedAndDoNotOccupyLabelKey() = runBlocking {
+        val personal = repo.addChip(ServiceContext.CAFE, "Không đá", ChipCategory.DETAIL)
+        val other = repo.getChips(ServiceContext.CAFE).first { !it.isPersonal }
+        for (label in listOf(" ", "a".repeat(51), "a\nb", other.label.uppercase())) {
+            try { repo.updateChip(personal.id, label); fail("Expected invalid label: $label")
+            } catch (error: BridgeException) { assertEquals(BridgeError.INVALID_REQUEST, error.code) }
+            assertEquals(personal, repo.getChips(ServiceContext.CAFE).single { it.id == personal.id })
+        }
+        try { repo.updateChip("missing", "Nội dung mới"); fail("Expected missing chip")
+        } catch (error: BridgeException) { assertEquals(BridgeError.INVALID_REQUEST, error.code) }
+        repo.updateChip(personal.id, "Sữa hạt")
+        try { repo.addChip(ServiceContext.CAFE, "SỮA HẠT", ChipCategory.DETAIL); fail("Expected duplicate")
+        } catch (error: BridgeException) { assertEquals(BridgeError.INVALID_REQUEST, error.code) }
+        // The old name is available after editing; uniqueness is scoped to each context.
+        repo.addChip(ServiceContext.CAFE, "Không đá", ChipCategory.DETAIL)
+        repo.addChip(ServiceContext.PHARMACY, "Sữa hạt", ChipCategory.DETAIL)
+        Unit
+    }
+
     @Test fun seedCannotBeDeletedAndDuplicatesAreRejected() = runBlocking {
         val seed = repo.getChips(ServiceContext.CAFE).first()
         try { repo.deletePersonalChip(seed.id); fail("Expected seed protection")

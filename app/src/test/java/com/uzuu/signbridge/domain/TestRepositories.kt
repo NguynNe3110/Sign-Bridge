@@ -13,6 +13,10 @@ class MemoryConversation : ConversationRepository {
     override suspend fun addChip(context: ServiceContext, label: String, category: ChipCategory) =
         QuickChip("custom", context, label, category, isPersonal = true).also { chips.add(it) }
     override suspend fun deletePersonalChip(id: String) { chips.removeAll { it.id == id && it.isPersonal } }
+    override suspend fun updateChip(id: String, label: String) {
+        val index = chips.indexOfFirst { it.id == id }
+        chips[index] = chips[index].copy(label = label)
+    }
     override suspend fun getHistory(limit: Int) = turns.takeLast(limit)
     override suspend fun appendTurn(
         sessionId: String, direction: Direction, rawInput: String, processedText: String,
