@@ -193,7 +193,7 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `quick reply speaks directly without calling api`() {
+    fun `quick reply calls expand api and speaks natural sentence`() = runTest(mainRule.dispatcher) {
         val vm = createViewModel()
 
         vm.onEvent(ConversationUiEvent.QuickReplyClicked("Lấy 1 hộp"))
@@ -201,9 +201,9 @@ class ConversationViewModelTest {
 
         vm.onEvent(ConversationUiEvent.SendChipsClicked)
 
-        assertTrue(conversation.expandCalls.isEmpty())
-        assertEquals(listOf("Lấy 1 hộp"), speaker.spoken)
-        assertEquals("Lấy 1 hộp", vm.uiState.value.spokenSentence)
+        assertEquals(listOf(listOf("Lấy 1 hộp")), conversation.expandCalls.map { it.first })
+        assertEquals(listOf("Câu mở rộng."), speaker.spoken)
+        assertEquals("Câu mở rộng.", vm.uiState.value.spokenSentence)
         assertEquals(TurnDirection.OUTGOING, conversation.savedTurns.single().direction)
     }
 
@@ -271,7 +271,7 @@ class ConversationViewModelTest {
 
         vm.onEvent(ConversationUiEvent.ReplayClicked)
 
-        assertEquals(listOf("Cảm ơn", "Cảm ơn"), speaker.spoken)
+        assertEquals(listOf("Câu mở rộng.", "Câu mở rộng."), speaker.spoken)
         assertEquals(1, conversation.savedTurns.size)
     }
 

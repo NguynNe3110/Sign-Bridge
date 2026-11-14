@@ -58,7 +58,7 @@
     <string name="deaf_unsure_title">Máy chưa chắc, bạn chạm thẻ để xác nhận:</string>
     <string name="deaf_unsure_glosses">Máy đoán: %1$s</string>
     <string name="deaf_unknown_gloss">\?</string>
-    <string name="deaf_chips_title">Thẻ từ khóa (chọn 1–3)</string>
+    <string name="deaf_chips_title">Thẻ từ khóa (chọn 1–%1$d)</string>
     <string name="deaf_selected">Đã chọn %1$d/%2$d</string>
     <string name="deaf_selection_count">%1$d/%2$d</string>
     <string name="deaf_send_chips">Nói câu này</string>
@@ -83,7 +83,8 @@
     <string name="chip_manage_save">Lưu thay đổi</string>
     <string name="chip_manage_saving">Đang lưu…</string>
     <string name="chip_manage_cancel">Hủy sửa</string>
-    <string name="chip_manage_local_hint">Thẻ được đồng bộ với máy chủ. Nhấn nút sửa để đổi nội dung.</string>
+    <string name="chip_manage_local_hint">Thẻ mới được lưu trên máy chủ. Nội dung sửa được lưu trên máy.</string>
+    <string name="chip_error_save_failed">Không lưu được thẻ. Kiểm tra kết nối và thử lại.</string>
     <string name="chip_manage_personal">Thẻ của bạn</string>
     <string name="chip_manage_preset">Thẻ có sẵn</string>
     <string name="chip_manage_empty">Chưa có thẻ cá nhân.</string>

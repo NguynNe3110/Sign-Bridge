@@ -79,16 +79,17 @@ class ConversationRepositoryApiTest {
         server.enqueue(jsonResponse("""
             [
                 {"id":"chip-1","text":"Trà sữa chân trâu","context":"CAFE","is_system":true,"user_id":"SYSTEM","usage_count":0},
-                {"id":"chip-2","text":"Ít ngọt","context":"CAFE","is_system":false,"user_id":"test-user-id-456","usage_count":1}
+                {"id":"chip-2","text":"Ít đường","context":"CAFE","is_system":false,"user_id":"test-user-id-456","usage_count":1},
+                {"id":"shared-custom","text":"Thẻ dùng chung","context":"CUSTOM","is_system":true,"user_id":"SYSTEM","usage_count":0}
             ]
         """.trimIndent()))
 
         val chips = repo.getChips(ServiceContext.CAFE)
-        assertEquals(2, chips.size)
-        assertEquals("Trà sữa chân trâu", chips[0].label)
-        assertFalse(chips[0].isPersonal)
-        assertEquals("Ít ngọt", chips[1].label)
-        assertTrue(chips[1].isPersonal)
+        assertEquals(17, chips.size)
+        assertFalse(chips.single { it.id == "chip-1" }.isPersonal)
+        assertEquals("Ít đường", chips.single { it.id == "chip-2" }.label)
+        assertTrue(chips.single { it.id == "chip-2" }.isPersonal)
+        assertTrue(chips.all { it.context == ServiceContext.CAFE })
 
         // Verify request was sent with proper query and header
         val recorded = server.takeRequest()
@@ -98,7 +99,7 @@ class ConversationRepositoryApiTest {
 
         // Verify SQLite cache was synced
         val cached = dao.chips("CAFE")
-        assertEquals(2, cached.size)
+        assertEquals(17, cached.size)
     }
 
     @Test
@@ -152,7 +153,7 @@ class ConversationRepositoryApiTest {
     fun deletePersonalChipCallsRemoteDeleteAndRemovesFromCache() = runBlocking {
         // Seed a personal chip directly into cache
         val chipId = "personal-chip-to-delete"
-        dao.insertChip(com.uzuu.signbridge.data.local.entity.QuickChipEntity(chipId, "CAFE", "Bánh su kem", "DETAIL", 0, true))
+        dao.insertChip(com.uzuu.signbridge.data.local.entity.QuickChipEntity(chipId, "CAFE", "Bánh su kem", "DETAIL", 0, true), remoteId = chipId)
 
         // Server returns success: true for DELETE
         server.enqueue(jsonResponse("""{"success":true}"""))
@@ -180,24 +181,38 @@ class ConversationRepositoryApiTest {
     }
 
     @Test
-    fun updateChipOnPersonalChipDeletesAndCreatesNewChip() = runBlocking {
+    fun editingRemoteChipPreservesIdAndSurvivesRefreshWithoutDestructiveRequests() = runBlocking {
         // Seed a personal chip in DB with unique label
-        dao.insertChip(com.uzuu.signbridge.data.local.entity.QuickChipEntity("old-personal-id", "CAFE", "Trà ô long", "DETAIL", 0, true))
-
-        server.enqueue(jsonResponse("""{"success":true}""")) // for DELETE
-        server.enqueue(jsonResponse("""
-            {"id":"new-personal-id","text":"Trà ô long đặc biệt","context":"CAFE","is_system":false,"user_id":"test-user-id-456","usage_count":0}
-        """.trimIndent())) // for POST
+        dao.insertChip(com.uzuu.signbridge.data.local.entity.QuickChipEntity("old-personal-id", "CAFE", "Trà ô long", "DETAIL", 3, true), remoteId = "old-personal-id")
 
         repo.updateChip("old-personal-id", "Trà ô long đặc biệt")
 
-        val deleteReq = server.takeRequest()
-        assertEquals("DELETE", deleteReq.method)
-        assertEquals("/api/chips/old-personal-id?user_id=test-user-id-456", deleteReq.path)
+        assertEquals(0, server.requestCount)
+        server.enqueue(jsonResponse("""[
+            {"id":"old-personal-id","text":"Trà ô long","context":"CAFE","is_system":false,"user_id":"test-user-id-456","usage_count":0}
+        ]"""))
+        val edited = repo.getChips(ServiceContext.CAFE).single { it.id == "old-personal-id" }
+        assertEquals("Trà ô long đặc biệt", edited.label)
+        assertEquals(3, edited.usageCount)
+        assertEquals("GET", server.takeRequest().method)
+    }
 
-        val postReq = server.takeRequest()
-        assertEquals("POST", postReq.method)
-        val postBody = JSONObject(postReq.body.readUtf8())
-        assertEquals("Trà ô long đặc biệt", postBody.getString("text"))
+    @Test
+    fun remoteCardWithPresetLabelDoesNotReplacePresetOrResetUsage() = runBlocking {
+        val preset = dao.chips("CAFE").first { it.label == "Mang đi" }
+        server.enqueue(jsonResponse("""[
+            {"id":"remote-mang-di","text":"Mang đi","context":"CAFE","is_system":true,"user_id":"SYSTEM","usage_count":0}
+        ]"""))
+        val chips = repo.getChips(ServiceContext.CAFE)
+        assertEquals(15, chips.size)
+        assertEquals(preset.id, chips.single { it.label == "Mang đi" }.id)
+    }
+
+    @Test
+    fun deleteLegacyLocalCardDoesNotCallServer() = runBlocking {
+        dao.insertChip(com.uzuu.signbridge.data.local.entity.QuickChipEntity("legacy-local", "CAFE", "Thẻ local", "DETAIL", 0, true))
+        repo.deletePersonalChip("legacy-local")
+        assertEquals(null, dao.chip("legacy-local"))
+        assertEquals(0, server.requestCount)
     }
 }

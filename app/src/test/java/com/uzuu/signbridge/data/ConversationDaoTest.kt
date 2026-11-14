@@ -45,7 +45,7 @@ class ConversationDaoTest {
     }
 
     @Test
-    fun syncChipsReplacesContextChipsAtomicallyWithoutAffectingOtherContexts() {
+    fun syncChipsMergesWithoutRemovingDefaultsOrOtherContexts() {
         val initialPharmacy = dao.chips("PHARMACY")
 
         val newCafeChips = listOf(
@@ -56,9 +56,10 @@ class ConversationDaoTest {
         dao.syncChips("CAFE", newCafeChips)
 
         val updatedCafe = dao.chips("CAFE")
-        assertEquals(2, updatedCafe.size)
+        assertEquals(17, updatedCafe.size)
         assertEquals("Trà đào cam sả", updatedCafe[0].label)
-        assertEquals("Bánh ngọt", updatedCafe[1].label)
+        assertTrue(updatedCafe.any { it.label == "Bánh ngọt" })
+        assertEquals(15, updatedCafe.count { it.id.startsWith("seed_") })
 
         val pharmacyAfter = dao.chips("PHARMACY")
         assertEquals(initialPharmacy.size, pharmacyAfter.size)

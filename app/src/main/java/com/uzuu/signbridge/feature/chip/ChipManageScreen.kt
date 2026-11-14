@@ -213,7 +213,7 @@ private fun ChipInputError.message(): String = when (this) {
     ChipInputError.TOO_LONG -> stringResource(R.string.chip_error_too_long, ChipManageViewModel.MAX_LABEL_LENGTH)
     ChipInputError.INVALID_CHARACTERS -> stringResource(R.string.chip_error_invalid_characters)
     ChipInputError.DUPLICATE -> stringResource(R.string.chip_error_duplicate)
-    ChipInputError.SAVE_FAILED -> stringResource(R.string.error_storage)
+    ChipInputError.SAVE_FAILED -> stringResource(R.string.chip_error_save_failed)
 }
 
 @Composable
