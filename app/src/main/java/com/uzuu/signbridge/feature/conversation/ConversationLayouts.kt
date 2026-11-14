@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.automirrored.filled.ViewQuilt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -237,6 +238,80 @@ private fun SharedOutgoingMessage(state: ConversationUiState, actions: Conversat
     }
 }
 
+internal class FocusedConversationTabState(
+    initialStaffTab: Boolean = false,
+) {
+    var staffTab by mutableStateOf(initialStaffTab)
+        internal set
+
+    private var wasSummarizing = false
+    private var wasRecognizingSign = false
+    private var waitingForCustomerSend = false
+
+    fun selectTab(isStaff: Boolean) {
+        staffTab = isStaff
+    }
+
+    fun onCustomerSendInitiated() {
+        waitingForCustomerSend = true
+    }
+
+    fun update(state: ConversationUiState) {
+        // 1. Staff finished speaking & summarizing -> auto switch to Customer tab
+        if (state.isSummarizing) {
+            wasSummarizing = true
+        } else if (wasSummarizing) {
+            wasSummarizing = false
+            if (state.staffError == null && state.summary != null) {
+                staffTab = false
+            }
+        }
+
+        // 2. Customer finished signing -> auto switch to Staff tab
+        if (state.isRecognizing) {
+            wasRecognizingSign = true
+        } else if (wasRecognizingSign) {
+            wasRecognizingSign = false
+            if (state.deafError == null && state.pendingSign == null && state.spokenSentence.isNotBlank()) {
+                staffTab = true
+            }
+        }
+
+        // 3. Customer finished selecting & sending chips -> auto switch to Staff tab
+        if (waitingForCustomerSend) {
+            if (state.deafError != null) {
+                waitingForCustomerSend = false
+            } else if (!state.isExpanding && state.selectedChips.isEmpty() && state.spokenSentence.isNotBlank()) {
+                waitingForCustomerSend = false
+                staffTab = true
+            }
+        }
+    }
+
+    companion object {
+        val Saver: Saver<FocusedConversationTabState, Boolean> = Saver(
+            save = { it.staffTab },
+            restore = { FocusedConversationTabState(initialStaffTab = it) },
+        )
+    }
+}
+
+@Composable
+internal fun rememberFocusedConversationTabState(
+    state: ConversationUiState,
+    initialStaffTab: Boolean = false,
+): FocusedConversationTabState {
+    val tabState = rememberSaveable(saver = FocusedConversationTabState.Saver) {
+        FocusedConversationTabState(initialStaffTab = initialStaffTab)
+    }
+
+    LaunchedEffect(state) {
+        tabState.update(state)
+    }
+
+    return tabState
+}
+
 @Composable
 private fun FocusedConversation(
     state: ConversationUiState,
@@ -244,20 +319,28 @@ private fun FocusedConversation(
     cameraPreview: @Composable () -> Unit,
     header: @Composable () -> Unit,
 ) {
-    var staffTab by rememberSaveable { mutableStateOf(false) }
+    val tabState = rememberFocusedConversationTabState(state)
+    val focusedActions = remember(actions, tabState) {
+        actions.copy(
+            onSendChips = {
+                tabState.onCustomerSendInitiated()
+                actions.onSendChips()
+            }
+        )
+    }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = Dimens.ContentMaxWidth).fillMaxSize()) {
             header()
             Row(Modifier.fillMaxWidth().selectableGroup()) {
-                Tab(selected = !staffTab, onClick = { staffTab = false }, enabled = state.canChangeLayout,
-                    modifier = Modifier.weight(1f).background(if (!staffTab) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
+                Tab(selected = !tabState.staffTab, onClick = { tabState.selectTab(false) }, enabled = state.canChangeLayout,
+                    modifier = Modifier.weight(1f).background(if (!tabState.staffTab) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
                     text = { Text(stringResource(R.string.layout_customer)) })
-                Tab(selected = staffTab, onClick = { staffTab = true }, enabled = state.canChangeLayout,
-                    modifier = Modifier.weight(1f).background(if (staffTab) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
+                Tab(selected = tabState.staffTab, onClick = { tabState.selectTab(true) }, enabled = state.canChangeLayout,
+                    modifier = Modifier.weight(1f).background(if (tabState.staffTab) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),
                     text = { Text(stringResource(R.string.layout_staff)) })
             }
-            if (staffTab) StaffConversationPanel(state, actions, Modifier.weight(1f).fillMaxWidth())
-            else CustomerConversationPanel(state, actions, cameraPreview, Modifier.weight(1f).fillMaxWidth())
+            if (tabState.staffTab) StaffConversationPanel(state, actions, Modifier.weight(1f).fillMaxWidth())
+            else CustomerConversationPanel(state, focusedActions, cameraPreview, Modifier.weight(1f).fillMaxWidth())
         }
     }
 }
