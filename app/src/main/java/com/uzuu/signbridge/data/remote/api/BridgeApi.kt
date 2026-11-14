@@ -79,9 +79,9 @@ class BridgeApi(
                     if (it.header("Ngrok-Error-Code") != null) {
                         throw BridgeException(BridgeError.NETWORK, "Đường hầm ngrok của dịch vụ AI chưa sẵn sàng. Kiểm tra URL và bật lại dịch vụ.")
                     }
-                    if (it.code == 404 && path in setOf("sign", "summarize", "expand")) {
+                    if (it.code == 404 && path in setOf("sign", "sign/glosses", "summarize", "expand")) {
                         throw BridgeException(BridgeError.NOT_CONFIGURED,
-                            if (path == "sign") "Dịch vụ này chưa cung cấp API nhận diện ký hiệu. Hãy dùng thẻ từ khóa."
+                            if (path.startsWith("sign")) "Dịch vụ này chưa cung cấp API nhận diện ký hiệu. Hãy dùng thẻ từ khóa."
                             else "Dịch vụ này chưa cung cấp API '$path'. Hãy dùng thẻ từ khóa.")
                     }
                     val code = runCatching {

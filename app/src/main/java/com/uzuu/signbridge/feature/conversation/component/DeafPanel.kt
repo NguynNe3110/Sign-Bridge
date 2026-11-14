@@ -62,6 +62,8 @@ fun DeafPanel(
     onCaptureCancelled: () -> Unit = onSignReleased,
     showHeader: Boolean = true,
     header: (@Composable () -> Unit)? = null,
+    onSendSignDraft: () -> Unit = {},
+    onClearSignDraft: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -79,7 +81,8 @@ fun DeafPanel(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceM),
         ) {
-            CustomerMessages(state, onQuickReply, onChipToggled, onDismissError, cameraPreview)
+            CustomerMessages(state, onQuickReply, onChipToggled, onDismissError, cameraPreview,
+                onSendSignDraft = onSendSignDraft, onClearSignDraft = onClearSignDraft)
 
             ChipBoard(
                 state = state,
@@ -103,7 +106,7 @@ fun DeafPanel(
             activeLabel = stringResource(R.string.deaf_sign_active),
             icon = AppIcons.Sign,
             isActive = state.isSigning,
-            enabled = !state.isBusy || state.isSigning,
+            enabled = (!state.isBusy && state.canAddSignClip) || state.isSigning,
             onPressStart = onSignPressed,
             onPressEnd = onSignReleased,
             onPressCancel = onCaptureCancelled,
@@ -130,11 +133,22 @@ internal fun CustomerMessages(
     onChipToggled: (String) -> Unit,
     onDismissError: () -> Unit,
     cameraPreview: @Composable () -> Unit,
+    onSendSignDraft: () -> Unit = {},
+    onClearSignDraft: () -> Unit = {},
 ) {
     state.deafError?.let {
         ErrorBanner(error = it, onDismiss = onDismissError, message = state.deafErrorMessage)
     }
     cameraPreview()
+    if (state.signDraft.isNotEmpty()) {
+        SignDraftSection(
+            draft = state.signDraft,
+            enabled = !state.isBusy,
+            canAddMore = state.canAddSignClip,
+            onSend = onSendSignDraft,
+            onClear = onClearSignDraft,
+        )
+    }
 
     when {
         state.isStaffRecording -> StatusRow(

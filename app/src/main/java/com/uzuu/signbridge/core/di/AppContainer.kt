@@ -27,7 +27,8 @@ import okhttp3.OkHttpClient
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val database = AppDatabase(appContext)
-    private val camera = SignCameraDataSource(appContext)
+    // Model ký hiệu trên máy (assets/vsl); thiếu file → camera dùng luồng gửi ảnh /api/sign.
+    private val camera = SignCameraDataSource(appContext, VslRecognizerDataSource(appContext))
     val cameraPreview: CameraPreviewController = camera
     // Direct AI requests include both speech recognition and LLM inference.
     private val httpClient = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
@@ -58,13 +59,14 @@ class AppContainer(context: Context) {
     )
     val sendChips = SendChipsUseCase(conversation, translation)
     val recognizeSign = RecognizeSignUseCase(conversation, translation)
+    val composeSign = ComposeSignUseCase(conversation, translation)
     val summarizeSpeech = SummarizeSpeechUseCase(conversation, translation)
     val speakQuickReply = SpeakQuickReplyUseCase(conversation, device)
     val serverViewModelFactory = viewModelFactory { initializer { ServerViewModel(serverSettings) } }
 
     fun conversationViewModelFactory(context: ContextType) = viewModelFactory {
         initializer { ConversationViewModel(context, conversation, device,
-            sendChips, recognizeSign, summarizeSpeech, speakQuickReply) }
+            sendChips, recognizeSign, composeSign, summarizeSpeech, speakQuickReply) }
     }
 
     fun chipManageViewModelFactory(context: ContextType) = viewModelFactory {

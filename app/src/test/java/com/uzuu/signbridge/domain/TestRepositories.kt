@@ -39,6 +39,13 @@ class StubTranslation : TranslationRepository {
     }
     override suspend fun recognizeSign(context: ServiceContext, frames: List<SignFrame>,
         personalChips: List<String>, previousIncoming: String?) = sign
+    var glossesAction: suspend () -> SignResult = { sign }
+    var lastPersonalChips: List<String> = emptyList()
+    override suspend fun composeSignGlosses(context: ServiceContext, glosses: List<GlossPrediction>,
+        personalChips: List<String>, previousIncoming: String?): SignResult {
+        lastPersonalChips = personalChips
+        return glossesAction()
+    }
     override suspend fun summarize(context: ServiceContext, audio: RecordedAudio, previousOutgoing: String?) =
         SpeechSummary("Giá 35.000đ.", "Giá 35.000đ.", emptyList(), "MONEY", listOf("Đồng ý", "Cảm ơn", "Không"))
 }
@@ -46,6 +53,9 @@ class StubTranslation : TranslationRepository {
 class StubDevice : DeviceRepository {
     var spoken = ""
     var cancelled = false
+    override val supportsOnDeviceSign = false
+    override fun startSignClip() = Unit
+    override suspend fun finishSignClip() = GlossPrediction("cảm ơn", 0.9f)
     override fun startSignCapture() = Unit
     override suspend fun finishSignCapture() = List(4) { SignFrame(byteArrayOf(1), 640, 480) }
     override fun startRecording() = Unit

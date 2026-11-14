@@ -85,6 +85,8 @@ fun ConversationContent(
             onDismissStaffError = { onEvent(ConversationUiEvent.StaffErrorDismissed) },
             onDismissDeafError = { onEvent(ConversationUiEvent.DeafErrorDismissed) },
             onCaptureCancelled = { onEvent(ConversationUiEvent.CaptureCancelled) },
+            onSendSignDraft = { onEvent(ConversationUiEvent.SendSignDraftClicked) },
+            onClearSignDraft = { onEvent(ConversationUiEvent.ClearSignDraftClicked) },
         ),
         cameraPreview = cameraPreview,
         modifier = modifier,

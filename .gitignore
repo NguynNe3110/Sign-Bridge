@@ -34,3 +34,7 @@ secrets.properties
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Model nhận diện ký hiệu trên máy (guideline-vsl-hybrid): license model chưa xác nhận → không commit.
+# Chép vsl_model.tflite + labels.json từ SignBridge-AI/data/vsl và tải holistic_landmarker.task (README-BACKEND.md).
+app/src/main/assets/vsl/

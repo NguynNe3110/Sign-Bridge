@@ -6,6 +6,7 @@ import com.uzuu.signbridge.core.result.AppResult
 import com.uzuu.signbridge.core.result.ErrorCode
 import com.uzuu.signbridge.core.ui.HapticPattern
 import com.uzuu.signbridge.domain.model.ContextType
+import com.uzuu.signbridge.domain.model.GlossPrediction
 import com.uzuu.signbridge.domain.model.Highlight
 import com.uzuu.signbridge.domain.model.HighlightType
 import com.uzuu.signbridge.domain.model.IconCode
@@ -53,6 +54,7 @@ class ConversationViewModelTest {
         deviceRepository = speaker,
         sendChips = SendChipsUseCase(chips, conversation),
         recognizeSign = RecognizeSignUseCase(chips, conversation),
+        composeSign = ComposeSignUseCase(chips, conversation),
         summarizeSpeech = SummarizeSpeechUseCase(chips, conversation),
         speakReply = SpeakQuickReplyUseCase(chips, speaker),
     )
@@ -159,6 +161,60 @@ class ConversationViewModelTest {
 
         vm.onEvent(ConversationUiEvent.DeafErrorDismissed)
         assertNull(vm.uiState.value.deafError)
+    }
+
+    @Test
+    fun `on-device sign collects one gloss per hold then composes and speaks`() = runTest(mainRule.dispatcher) {
+        speaker.supportsOnDeviceSign = true
+        speaker.clipPredictions += listOf(GlossPrediction("đau bụng", 0.93f), GlossPrediction("hiệu thuốc", 0.81f))
+        val vm = createViewModel()
+        assertTrue(vm.uiState.value.isOnDeviceSign)
+
+        repeat(2) {
+            vm.onEvent(ConversationUiEvent.SignPressed)
+            assertTrue(vm.uiState.value.isSigning)
+            vm.onEvent(ConversationUiEvent.SignReleased)
+        }
+
+        assertEquals(2, speaker.startClipCount)
+        assertEquals(0, conversation.startSignCount)
+        assertEquals(listOf("đau bụng", "hiệu thuốc"), vm.uiState.value.signDraft.map { it.label })
+        assertTrue(conversation.glossesCalls.isEmpty())
+        assertTrue(speaker.spoken.isEmpty())
+
+        vm.onEvent(ConversationUiEvent.SendSignDraftClicked)
+
+        val state = vm.uiState.value
+        assertEquals(listOf(listOf("đau bụng", "hiệu thuốc")), conversation.glossesCalls.map { c -> c.map { it.label } })
+        assertEquals(listOf("Dị ứng penicillin"), conversation.lastPersonalChips)
+        assertTrue(state.signDraft.isEmpty())
+        assertEquals("Mình bị đau bụng, muốn tìm hiệu thuốc.", state.spokenSentence)
+        assertEquals(listOf("Mình bị đau bụng, muốn tìm hiệu thuốc."), speaker.spoken)
+        assertEquals(TurnDirection.OUTGOING, conversation.savedTurns.single().direction)
+        assertFalse(state.isBusy)
+    }
+
+    @Test
+    fun `on-device sign keeps draft on failure and stops at ten glosses`() = runTest(mainRule.dispatcher) {
+        speaker.supportsOnDeviceSign = true
+        repeat(11) { speaker.clipPredictions += GlossPrediction("ký hiệu $it", 0.9f) }
+        val vm = createViewModel()
+        repeat(11) {
+            vm.onEvent(ConversationUiEvent.SignPressed)
+            vm.onEvent(ConversationUiEvent.SignReleased)
+        }
+        assertEquals(10, vm.uiState.value.signDraft.size)
+        assertEquals(10, speaker.startClipCount)
+        assertFalse(vm.uiState.value.canAddSignClip)
+
+        conversation.glossesResult = AppResult.Failure(AppError(ErrorCode.INVALID_REQUEST))
+        vm.onEvent(ConversationUiEvent.SendSignDraftClicked)
+        assertEquals(ErrorCode.INVALID_REQUEST, vm.uiState.value.deafError)
+        assertEquals(10, vm.uiState.value.signDraft.size)
+
+        vm.onEvent(ConversationUiEvent.ClearSignDraftClicked)
+        assertTrue(vm.uiState.value.signDraft.isEmpty())
+        assertTrue(vm.uiState.value.canAddSignClip)
     }
 
     @Test

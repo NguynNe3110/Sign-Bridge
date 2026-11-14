@@ -26,6 +26,15 @@ class RecordingConversationRepository : TranslationRepository {
         lastPersonalChips = personalChips
         return signResult.unwrap()
     }
+    var glossesResult: AppResult<SignResult> = AppResult.Success(
+        SignResult(listOf("ĐAU BỤNG", "HIỆU THUỐC"), 0.9, "Mình bị đau bụng, muốn tìm hiệu thuốc.", listOf("đau bụng")))
+    val glossesCalls = mutableListOf<List<GlossPrediction>>()
+    override suspend fun composeSignGlosses(context: ServiceContext, glosses: List<GlossPrediction>,
+        personalChips: List<String>, previousIncoming: String?): SignResult {
+        glossesCalls += glosses
+        lastPersonalChips = personalChips
+        return glossesResult.unwrap()
+    }
     override suspend fun expand(context: ServiceContext, chips: List<String>, previousIncoming: String?): String {
         expandCalls += chips to previousIncoming
         return expandResult.unwrap()
@@ -49,6 +58,11 @@ class RecordingSpeakerRepository(private val calls: RecordingConversationReposit
     var speechError: Exception? = null
     var speakAction: (suspend () -> Unit)? = null
     var recordingError: Exception? = null
+    override var supportsOnDeviceSign = false
+    val clipPredictions = ArrayDeque<GlossPrediction>()
+    var startClipCount = 0
+    override fun startSignClip() { startClipCount++ }
+    override suspend fun finishSignClip() = clipPredictions.removeFirst()
     override fun startSignCapture() { calls?.let { it.startSignCount++ } }
     override fun startRecording() {
         recordingError?.let { throw it }

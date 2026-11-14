@@ -56,6 +56,7 @@ class Tv1Tv2IntegrationTest {
     private fun viewModel(translation: TranslationRepository = remote): ConversationViewModel =
         ConversationViewModel(ServiceContext.CAFE, storage, device,
             SendChipsUseCase(storage, translation), RecognizeSignUseCase(storage, translation),
+            ComposeSignUseCase(storage, translation),
             SummarizeSpeechUseCase(storage, translation), SpeakQuickReplyUseCase(storage, device))
             .also { store.put("conversation", it) }
 

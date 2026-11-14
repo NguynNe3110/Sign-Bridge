@@ -50,6 +50,8 @@ internal data class ConversationActions(
     val onDismissStaffError: () -> Unit,
     val onDismissDeafError: () -> Unit,
     val onCaptureCancelled: () -> Unit,
+    val onSendSignDraft: () -> Unit = {},
+    val onClearSignDraft: () -> Unit = {},
 )
 
 private val ConversationUiState.canChangeLayout: Boolean
@@ -162,7 +164,8 @@ private fun SharedConversation(
                 SharedOutgoingMessage(state, actions)
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 CustomerMessages(state, actions.onQuickReply, actions.onChipToggled,
-                    actions.onDismissDeafError, cameraPreview)
+                    actions.onDismissDeafError, cameraPreview,
+                    onSendSignDraft = actions.onSendSignDraft, onClearSignDraft = actions.onClearSignDraft)
                 Box(Modifier.bringIntoViewRequester(chipsRequester)) {
                     ChipBoard(state, actions.onChipToggled)
                 }
@@ -187,7 +190,7 @@ private fun SharedConversation(
                         label = stringResource(R.string.shared_sign_idle),
                         activeLabel = stringResource(R.string.shared_sign_active),
                         icon = AppIcons.Sign, isActive = state.isSigning,
-                        enabled = !state.isBusy || state.isSigning,
+                        enabled = (!state.isBusy && state.canAddSignClip) || state.isSigning,
                         onPressStart = actions.onSignPressed, onPressEnd = actions.onSignReleased,
                         onPressCancel = actions.onCaptureCancelled,
                         modifier = Modifier.weight(1f).heightIn(min = Dimens.SharedHoldButtonHeight),
@@ -410,5 +413,6 @@ private fun CustomerConversationPanel(
         onDismissError = actions.onDismissDeafError, cameraPreview = cameraPreview,
         onCaptureCancelled = actions.onCaptureCancelled, modifier = modifier,
         showHeader = header != null, header = header,
+        onSendSignDraft = actions.onSendSignDraft, onClearSignDraft = actions.onClearSignDraft,
     )
 }

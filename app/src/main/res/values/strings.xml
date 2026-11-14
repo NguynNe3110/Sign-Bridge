@@ -48,6 +48,12 @@
     <string name="deaf_sign_idle">Nhấn giữ để ký hiệu</string>
     <string name="deaf_sign_active">Đang quay… thả tay để gửi</string>
     <string name="deaf_recognizing">Đang nhận diện ký hiệu…</string>
+    <string name="deaf_sign_draft_title">Ký hiệu đã nhận (%1$d/%2$d)</string>
+    <string name="deaf_sign_draft_item">%1$s · %2$d%%</string>
+    <string name="deaf_sign_draft_hint">Giữ nút Ký hiệu để thêm ký hiệu tiếp theo (mỗi lần 1 ký hiệu, tối đa 4 giây).</string>
+    <string name="deaf_sign_draft_full">Đã đủ %1$d ký hiệu. Bấm Ghép câu hoặc Xoá.</string>
+    <string name="deaf_sign_draft_send">Ghép câu</string>
+    <string name="deaf_sign_draft_clear">Xoá</string>
     <string name="deaf_staff_speaking">Nhân viên đang nói…</string>
     <string name="deaf_processing_speech">Đang chuyển lời nói thành văn bản…</string>
     <string name="deaf_summary_title">Nhân viên nói</string>

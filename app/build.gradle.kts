@@ -33,6 +33,11 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
 
+    // Model nhận diện ký hiệu được memory-map trực tiếp từ assets → không được nén.
+    androidResources {
+        noCompress += listOf("tflite", "task")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -68,6 +73,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    implementation(libs.mediapipe.tasks.vision)
+    implementation(libs.litert)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)

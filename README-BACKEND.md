@@ -30,7 +30,28 @@ Mobile gọi từ điện thoại cùng wifi: `http://<IP-laptop>:8080/api/...` 
 
 ## Endpoint
 
-Android hiện mặc định gọi **trực tiếp AI Service** tại `https://tartness-humbling-backboned.ngrok-free.dev/`, không qua host Spring mock `scrimmage-legume-unvalued`. Hợp đồng đang chạy xem `/docs` hoặc `/openapi.json` trên host AI. Chọn thẻ gọi `POST /api/expand`; ghi âm M4A gọi `POST /api/summarize` (dịch vụ tự STT và tóm tắt), phát loa dùng TTS Android. Timeout tổng cho AI là 30 giây. Swagger AI hiện chưa khai báo `/api/sign`.
+Android hiện mặc định gọi **trực tiếp AI Service** tại `https://tartness-humbling-backboned.ngrok-free.dev/`, không qua host Spring mock `scrimmage-legume-unvalued`. Hợp đồng đang chạy xem `/docs` hoặc `/openapi.json` trên host AI. Chọn thẻ gọi `POST /api/expand`; ghi âm M4A gọi `POST /api/summarize` (dịch vụ tự STT và tóm tắt), phát loa dùng TTS Android. Timeout tổng cho AI là 30 giây.
+
+### Ký hiệu bằng camera
+
+Theo `SignBridge-AI/docs/guideline-vsl-hybrid.md` (hợp đồng `luong-xu-ly-chinh.md` §4.2a):
+
+| Có model trong `app/src/main/assets/vsl/` | Luồng |
+|---|---|
+| Có (mặc định khi đã cài file) | Mỗi lần giữ nút Ký hiệu = 1 ký hiệu (tối đa 4 giây). Máy chạy MediaPipe Holistic → 201 toạ độ/frame → nội suy cubic 60 frame → TFLite → nhãn + xác suất. Gom tối đa 10 ký hiệu, bấm **Ghép câu** → `POST /api/sign/glosses` (JSON, không gửi ảnh). Mất mạng → câu dự phòng ghép đúng các nhãn, hiển thị cho nhân viên đọc. |
+| Không | Giữ nút Ký hiệu gửi 4–16 ảnh JPEG lên `POST /api/sign`. Lỗi không trả câu mẫu mà báo lỗi để người dùng chọn thẻ. |
+
+Cài file model (thư mục đã nằm trong `.gitignore` vì license model VSL **[cần xác nhận]**):
+
+```powershell
+New-Item -ItemType Directory -Force app/src/main/assets/vsl
+# 1) Model + nhãn sinh bởi SignBridge-AI/tools/convert_vsl_tflite.py
+Copy-Item ../SignBridge-AI/data/vsl/vsl_model.tflite, ../SignBridge-AI/data/vsl/labels.json app/src/main/assets/vsl/
+# 2) MediaPipe Holistic (Apache-2.0, 13,7 MB)
+Invoke-WebRequest https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/latest/holistic_landmarker.task -OutFile app/src/main/assets/vsl/holistic_landmarker.task
+```
+
+Server cần `VSL_LABELS_PATH` trỏ tới cùng `labels.json` (`GET /api/health` → `"vsl_labels": 2764`), nếu không mọi nhãn ngoài bộ §7 thành `UNKNOWN`.
 
 Gradle property `signbridge.apiBaseUrl` và địa chỉ IPv4 đã lưu trong app vẫn được ưu tiên nếu có; cần bảo đảm chúng trỏ đúng AI Service khi thử kết nối trực tiếp. Các mục Spring Boot bên dưới mô tả service gateway trong repo riêng.
 

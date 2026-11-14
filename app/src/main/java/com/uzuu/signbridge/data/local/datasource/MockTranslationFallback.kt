@@ -2,36 +2,8 @@ package com.uzuu.signbridge.data.local.datasource
 
 import com.uzuu.signbridge.domain.model.*
 
+/** Dữ liệu mẫu khi server lỗi, chỉ cho thẻ và tóm tắt. Ký hiệu không có mẫu (mục 4.2). */
 object MockTranslationFallback {
-
-    fun mockSign(context: ServiceContext, personalChips: List<String> = emptyList()): SignResult {
-        return when (context) {
-            ServiceContext.CAFE -> SignResult(
-                glosses = listOf("CÀ PHÊ", "ĐÁ", "MANG ĐI"),
-                confidence = 0.88,
-                sentence = "Cho mình một cà phê đá mang đi nhé, cảm ơn bạn.",
-                suggestedChips = listOf("Cà phê", "Đá", "Mang đi", "Ít ngọt"),
-            )
-            ServiceContext.PHARMACY -> SignResult(
-                glosses = listOf("ĐAU", "ĐẦU", "MUA", "THUỐC"),
-                confidence = 0.90,
-                sentence = "Chào bạn, mình bị đau đầu, muốn mua thuốc.",
-                suggestedChips = listOf("Đau đầu", "Mua thuốc", "Uống sau ăn", "Không buồn ngủ"),
-            )
-            ServiceContext.PUBLIC -> SignResult(
-                glosses = listOf("GIẤY TỜ", "Ở ĐÂU"),
-                confidence = 0.85,
-                sentence = "Chào anh chị, cho mình hỏi nộp giấy tờ ở đâu ạ?",
-                suggestedChips = listOf("Giấy tờ", "Ở đâu", "Lấy số thứ tự", "Cảm ơn"),
-            )
-            ServiceContext.CUSTOM -> SignResult(
-                glosses = listOf("XIN CHÀO", "CẢM ƠN"),
-                confidence = 0.92,
-                sentence = "Xin chào, cảm ơn bạn.",
-                suggestedChips = listOf("Xin chào", "Cảm ơn", "Có", "Không"),
-            )
-        }
-    }
 
     fun mockExpand(context: ServiceContext, chips: List<String>): String {
         if (chips.isEmpty()) return ""

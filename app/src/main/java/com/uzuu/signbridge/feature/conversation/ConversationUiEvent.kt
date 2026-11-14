@@ -9,6 +9,8 @@ sealed interface ConversationUiEvent {
     // Người khiếm thính
     data object SignPressed : ConversationUiEvent
     data object SignReleased : ConversationUiEvent
+    data object SendSignDraftClicked : ConversationUiEvent
+    data object ClearSignDraftClicked : ConversationUiEvent
     data class ChipToggled(val label: String) : ConversationUiEvent
     data object ClearChipsClicked : ConversationUiEvent
     data object SendChipsClicked : ConversationUiEvent

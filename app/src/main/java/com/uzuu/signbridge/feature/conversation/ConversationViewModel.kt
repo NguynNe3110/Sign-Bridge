@@ -22,10 +22,12 @@ class ConversationViewModel(
     private val deviceRepository: DeviceRepository,
     private val sendChips: SendChipsUseCase,
     private val recognizeSign: RecognizeSignUseCase,
+    private val composeSign: ComposeSignUseCase,
     private val summarizeSpeech: SummarizeSpeechUseCase,
     private val speakReply: SpeakQuickReplyUseCase,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(ConversationUiState(context = context, isInitializing = true))
+    private val _uiState = MutableStateFlow(ConversationUiState(context = context, isInitializing = true,
+        isOnDeviceSign = deviceRepository.supportsOnDeviceSign))
     val uiState = _uiState.asStateFlow()
     private val _effects = MutableSharedFlow<ConversationUiEffect>(
         extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -92,7 +94,9 @@ class ConversationViewModel(
             else -> if (!uiState.value.isBusy) {
                 if (session == null) { initialize(); return }
                 when (event) {
-                    ConversationUiEvent.SignPressed -> startCapture(true)
+                    ConversationUiEvent.SignPressed -> if (uiState.value.canAddSignClip) startCapture(true)
+                    ConversationUiEvent.SendSignDraftClicked -> sendSignDraft()
+                    ConversationUiEvent.ClearSignDraftClicked -> _uiState.update { it.copy(signDraft = emptyList()) }
                     is ConversationUiEvent.ChipToggled -> toggleChip(event.label)
                     ConversationUiEvent.ClearChipsClicked -> _uiState.update { it.copy(selectedChips = emptyList()) }
                     ConversationUiEvent.SendChipsClicked -> sendSelectedChips()
@@ -144,9 +148,14 @@ class ConversationViewModel(
     }
 
     private fun startCapture(sign: Boolean) {
+        val onDevice = sign && uiState.value.isOnDeviceSign
         try {
             deviceRepository.stopSpeaking()
-            if (sign) deviceRepository.startSignCapture() else deviceRepository.startRecording()
+            when {
+                onDevice -> deviceRepository.startSignClip()
+                sign -> deviceRepository.startSignCapture()
+                else -> deviceRepository.startRecording()
+            }
             _uiState.update {
                 if (sign) it.copy(isSigning = true, deafError = null, deafErrorMessage = null)
                 else it.copy(isStaffRecording = true, staffError = null, staffErrorMessage = null,
@@ -154,7 +163,11 @@ class ConversationViewModel(
             }
             if (!sign) _effects.tryEmit(ConversationUiEffect.Vibrate(HapticPattern.STAFF_STARTED_SPEAKING))
             timer = viewModelScope.launch {
-                delay(if (sign) CapturePolicy.MAX_SIGN_DURATION_MS else CapturePolicy.MAX_AUDIO_DURATION_MS)
+                delay(when {
+                    onDevice -> CapturePolicy.VSL_CLIP_MS
+                    sign -> CapturePolicy.MAX_SIGN_DURATION_MS
+                    else -> CapturePolicy.MAX_AUDIO_DURATION_MS
+                })
                 if (sign) finishSign() else finishVoice()
             }
         } catch (error: Exception) { deviceRepository.cancelCapture(); showError(error, !sign) }
@@ -165,12 +178,36 @@ class ConversationViewModel(
         val currentSession = session ?: return
         timer?.cancel()
         _uiState.update { it.copy(isSigning = false, isRecognizing = true) }
+        if (uiState.value.isOnDeviceSign) {
+            // 1 lần giữ nút = 1 ký hiệu: nhận diện trên máy rồi thêm vào lượt, chưa gọi server.
+            runTask(false) {
+                val prediction = deviceRepository.finishSignClip()
+                _uiState.update { it.copy(
+                    signDraft = (it.signDraft + prediction).take(CapturePolicy.MAX_TURN_GLOSSES),
+                    pendingSign = null, recognizedGlosses = emptyList()) }
+            }
+            return
+        }
         runTask(false) {
             val frames = deviceRepository.finishSignCapture()
             val result = recognizeSign(currentSession, frames, uiState.value.summary?.summary)
             _uiState.update { it.copy(recognizedGlosses = result.glosses,
                 pendingSign = result.takeIf { it.needsConfirmation }, selectedChips = emptyList()) }
             if (!result.needsConfirmation) displayAndSpeak(result.sentence, false)
+        }
+    }
+
+    /** Mục 4.2a: gửi các ký hiệu của lượt; câu đủ tin cậy thì phát loa, không thì hiện thẻ xác nhận. */
+    private fun sendSignDraft() {
+        val draft = uiState.value.signDraft
+        val currentSession = session ?: return
+        if (draft.isEmpty()) return
+        _uiState.update { it.copy(isRecognizing = true, deafError = null, deafErrorMessage = null) }
+        runTask(false) {
+            val result = composeSign(currentSession, draft, uiState.value.summary?.summary)
+            _uiState.update { it.copy(signDraft = emptyList(), recognizedGlosses = result.glosses,
+                pendingSign = result.takeIf { it.needsConfirmation }, selectedChips = emptyList()) }
+            if (!result.needsConfirmation) displayAndSpeak(result.sentence, result.isOffline)
         }
     }
 

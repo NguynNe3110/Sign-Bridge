@@ -47,31 +47,55 @@ class TranslationRepositoryImpl(
         personalChips: List<String>, previousIncoming: String?,
     ): SignResult {
         CapturePolicy.validateFrames(frames)
-        try {
-            val body = MultipartBody.Builder().setType(MultipartBody.FORM)
-                .addFormDataPart("context", context.name)
-                .addFormDataPart("personalChips", JSONArray(personalChips.take(20)).toString())
-            previousIncoming?.take(300)?.let { body.addFormDataPart("previousIncoming", it) }
-            frames.forEachIndexed { index, frame ->
-                body.addFormDataPart("frames", "frame_$index.jpg", frame.jpeg.toRequestBody("image/jpeg".toMediaType()))
-            }
-            val response = api.request("sign", body.build())
-            return decode {
-                val confidence = (response.get("confidence") as Number).toDouble()
-                require(confidence.isFinite() && confidence in 0.0..1.0)
-                val glosses = response.strings("glosses")
-                require(glosses.isNotEmpty() && glosses.size <= 20 && glosses.none { it.isBlank() })
-                val suggestions = response.strings("suggestedChips")
-                require(suggestions.size in 3..6 && suggestions.all { it.isNotBlank() && it.length <= 50 })
-                val sentence = response.text("spoken_sentence")
-                require(wordCount(sentence) <= 40)
-                SignResponseDto(glosses, confidence, sentence, suggestions).toDomain(context)
-            }
-        } catch (e: Exception) {
-            if (enableMockFallback && isRecoverable(e)) {
-                return MockTranslationFallback.mockSign(context, personalChips)
-            }
-            throw e
+        // Không có fallback dữ liệu mẫu: phát loa câu người dùng không hề ký là sai nghĩa (mục 4.2).
+        // Lỗi được ném lên để màn hình báo lỗi và người dùng chuyển sang thẻ từ khóa.
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+            .addFormDataPart("context", context.name)
+            .addFormDataPart("personalChips", JSONArray(personalChips.take(20)).toString())
+        previousIncoming?.take(300)?.let { body.addFormDataPart("previousIncoming", it) }
+        frames.forEachIndexed { index, frame ->
+            body.addFormDataPart("frames", "frame_$index.jpg", frame.jpeg.toRequestBody("image/jpeg".toMediaType()))
+        }
+        val response = api.request("sign", body.build())
+        return decode {
+            val confidence = (response.get("confidence") as Number).toDouble()
+            require(confidence.isFinite() && confidence in 0.0..1.0)
+            val glosses = response.strings("glosses")
+            require(glosses.isNotEmpty() && glosses.size <= 20 && glosses.none { it.isBlank() })
+            // Server không ép số thẻ gợi ý từ LLM: lọc và cắt còn tối đa 6 thay vì bỏ cả kết quả nhận diện.
+            val suggestions = response.strings("suggestedChips").map { it.trim() }
+                .filter { it.isNotEmpty() && it.length <= 50 }.distinct().take(MAX_SIGN_SUGGESTIONS)
+            // Câu quá dài → không phát loa, chuyển sang xác nhận bằng thẻ (glosses vẫn hiển thị).
+            val sentence = response.text("spoken_sentence").takeIf { wordCount(it) <= 40 }.orEmpty()
+            SignResponseDto(glosses, confidence, sentence, suggestions).toDomain(context)
+        }
+    }
+
+    override suspend fun composeSignGlosses(
+        context: ServiceContext, glosses: List<GlossPrediction>,
+        personalChips: List<String>, previousIncoming: String?,
+    ): SignResult {
+        if (glosses.size !in 1..CapturePolicy.MAX_TURN_GLOSSES) invalid("Mỗi lượt cần 1–10 ký hiệu.")
+        // Mục 4.2a: gửi nhãn nguyên văn của labels.json; server tự chuẩn hoá và ép về bộ ký hiệu.
+        val json = JSONObject().put("context", context.name)
+            .put("glosses", JSONArray(glosses.map { it.label }))
+            .put("confidences", JSONArray(glosses.map { it.confidence.toDouble() }))
+            .put("personalChips", JSONArray(personalChips.take(20)))
+            .put("previousIncoming", previousIncoming?.take(300) ?: JSONObject.NULL)
+        val response = api.request("sign/glosses",
+            json.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+        return decode {
+            val confidence = (response.get("confidence") as Number).toDouble()
+            require(confidence.isFinite() && confidence in 0.0..1.0)
+            val recognized = response.strings("glosses")
+            require(recognized.isNotEmpty() && recognized.size <= CapturePolicy.MAX_TURN_GLOSSES &&
+                recognized.none { it.isBlank() })
+            val suggestions = response.strings("suggestedChips").map { it.trim() }
+                .filter { it.isNotEmpty() && it.length <= 50 }.distinct().take(MAX_SIGN_SUGGESTIONS)
+            val sentence = response.text("spoken_sentence").takeIf { wordCount(it) <= 40 }.orEmpty()
+            // Không ép về bộ §7.2 như /api/sign: nhãn model (labels.json) là hợp lệ, server đã kiểm tra.
+            val confirmed = confidence >= 0.7 && SignResult.UNKNOWN_GLOSS !in recognized
+            SignResult(recognized, confidence, if (confirmed) sentence else "", suggestions)
         }
     }
 
@@ -140,6 +164,7 @@ class TranslationRepositoryImpl(
     private companion object {
         val ICONS = setOf("PILL", "MONEY", "QR_PAYMENT", "COUNTER", "TIME", "DOCUMENT", "DRINK", "FOOD", "CHECK", "WARNING", "INFO")
         val HIGHLIGHT_TYPES = setOf("PRICE", "COUNTER", "DOSAGE", "TIME", "QUANTITY", "OTHER")
+        const val MAX_SIGN_SUGGESTIONS = 6
     }
 }
 

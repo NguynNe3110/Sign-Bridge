@@ -20,7 +20,15 @@ import java.util.concurrent.Executors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class SignCameraDataSource(private val context: Context) : CameraPreviewController {
+/**
+ * Camera trước cho 2 chế độ:
+ * - [start]/[finish]: lấy 4–16 ảnh JPEG gửi `/api/sign` (khi máy không có model).
+ * - [startClip]/[finishClip]: 1 ký hiệu → landmark từng frame → model trên máy (mục 4.2a), không lưu/gửi ảnh.
+ */
+class SignCameraDataSource(
+    private val context: Context,
+    private val recognizer: VslRecognizerDataSource? = null,
+) : CameraPreviewController {
     private val executor = Executors.newSingleThreadExecutor()
     private val lock = Any()
     private var provider: ProcessCameraProvider? = null
@@ -29,10 +37,15 @@ class SignCameraDataSource(private val context: Context) : CameraPreviewControll
     private var bound = false
     private var generation = 0
     private var capturing = false
+    private var clipMode = false
     private var startedAt = 0L
     private var sampledAt = -CapturePolicy.FRAME_INTERVAL_MS
     private val frames = mutableListOf<SignFrame>()
+    private val landmarks = mutableListOf<FloatArray>()
     private var captureError: Exception? = null
+
+    val supportsOnDeviceSign: Boolean
+        get() = recognizer?.isAvailable == true
 
     @SuppressLint("MissingPermission") // Permission is requested by the host before bind.
     override fun bind(owner: LifecycleOwner, surface: Preview.SurfaceProvider, rotation: Int, onReady: (Result<Unit>) -> Unit) {
@@ -53,6 +66,8 @@ class SignCameraDataSource(private val context: Context) : CameraPreviewControll
                 preview = cameraPreview
                 analyzer = analysis
                 synchronized(lock) { bound = true }
+                // Nạp model trên luồng phân tích (cùng executor) trước frame đầu tiên của lần ký đầu.
+                if (supportsOnDeviceSign) executor.execute { runCatching { recognizer?.prepare() } }
                 onReady(Result.success(Unit))
             } catch (error: Exception) {
                 onReady(Result.failure(BridgeException(BridgeError.DEVICE, "Không mở được camera trước. Bạn có thể dùng thẻ.", error)))
@@ -70,21 +85,11 @@ class SignCameraDataSource(private val context: Context) : CameraPreviewControll
         analyzer = null
     }
 
-    fun start() = synchronized(lock) {
-        if (!bound) throw BridgeException(BridgeError.DEVICE, "Hãy mở camera và cấp quyền trước khi ghi ký hiệu.")
-        generation++
-        frames.clear()
-        captureError = null
-        startedAt = SystemClock.elapsedRealtime()
-        sampledAt = startedAt - CapturePolicy.FRAME_INTERVAL_MS
-        capturing = true
-    }
+    fun start() = begin(clip = false)
 
     suspend fun finish(): List<SignFrame> = withContext(Dispatchers.Default) {
         val result = synchronized(lock) {
-            capturing = false
-            generation++
-            captureError?.let { throw BridgeException(BridgeError.DEVICE, "Không đọc được khung hình. Hãy dùng thẻ.", it) }
+            stopCapture()
             val count = CapturePolicy.usableFrameCount(frames.size, SystemClock.elapsedRealtime() - startedAt)
             frames.take(count).also { frames.clear() }
         }
@@ -92,36 +97,106 @@ class SignCameraDataSource(private val context: Context) : CameraPreviewControll
         result
     }
 
+    fun startClip() {
+        if (!supportsOnDeviceSign) {
+            throw BridgeException(BridgeError.NOT_CONFIGURED, "Máy chưa có model nhận diện ký hiệu.")
+        }
+        begin(clip = true)
+    }
+
+    /** Kết thúc 1 ký hiệu: nội suy về 60 frame rồi chạy model (guideline §6). */
+    suspend fun finishClip(): GlossPrediction = withContext(Dispatchers.Default) {
+        val clip = synchronized(lock) {
+            stopCapture()
+            landmarks.toList().also { landmarks.clear() }
+        }
+        // Repo nguồn giữ cả frame không thấy tay (điền 0); chỉ từ chối khi cả clip không có tay nào.
+        if (clip.size < CapturePolicy.VSL_MIN_CLIP_FRAMES || clip.none(VslSequence::hasHand)) {
+            throw BridgeException(BridgeError.NO_SIGN_DETECTED,
+                "Chưa thấy tay trong khung hình. Giữ nút lâu hơn và ký trước camera.")
+        }
+        requireNotNull(recognizer).classify(VslSequence.interpolate(clip))
+    }
+
     fun cancel() = synchronized(lock) {
         capturing = false
+        clipMode = false
         generation++
         frames.clear()
+        landmarks.clear()
         captureError = null
+    }
+
+    private fun begin(clip: Boolean) = synchronized(lock) {
+        if (!bound) throw BridgeException(BridgeError.DEVICE, "Hãy mở camera và cấp quyền trước khi ghi ký hiệu.")
+        generation++
+        frames.clear()
+        landmarks.clear()
+        captureError = null
+        startedAt = SystemClock.elapsedRealtime()
+        sampledAt = startedAt - CapturePolicy.FRAME_INTERVAL_MS
+        clipMode = clip
+        capturing = true
+    }
+
+    /** Gọi trong `lock`. */
+    private fun stopCapture() {
+        capturing = false
+        clipMode = false
+        generation++
+        captureError?.let {
+            throw it as? BridgeException ?: BridgeException(BridgeError.DEVICE, "Không đọc được khung hình. Hãy dùng thẻ.", it)
+        }
     }
 
     private fun analyze(image: ImageProxy) {
         try {
             val now = SystemClock.elapsedRealtime()
+            var clip = false
             val token = synchronized(lock) {
-                if (!capturing || frames.size >= 16 || now - startedAt >= CapturePolicy.MAX_SIGN_DURATION_MS ||
-                    now - sampledAt < CapturePolicy.FRAME_INTERVAL_MS) return
-                sampledAt = now
+                if (!capturing) return
+                clip = clipMode
+                if (clip) {
+                    // Lấy mọi frame kịp xử lý trong 4 giây như repo nguồn; frame đến khi đang bận bị CameraX bỏ.
+                    if (now - startedAt >= CapturePolicy.VSL_CLIP_MS || landmarks.size >= MAX_CLIP_FRAMES) return
+                } else {
+                    if (frames.size >= 16 || now - startedAt >= CapturePolicy.MAX_SIGN_DURATION_MS ||
+                        now - sampledAt < CapturePolicy.FRAME_INTERVAL_MS) return
+                    sampledAt = now
+                }
                 generation
             }
-            val frame = encode(image)
-            synchronized(lock) {
-                if (capturing && generation == token && frames.size < 16) frames.add(frame)
+            if (clip) {
+                val upright = uprightBitmap(image)
+                val vector = try {
+                    requireNotNull(recognizer).extract(upright, SystemClock.uptimeMillis())
+                } finally { upright.recycle() }
+                synchronized(lock) {
+                    if (capturing && clipMode && generation == token) landmarks.add(vector)
+                }
+            } else {
+                val frame = encode(image)
+                synchronized(lock) {
+                    if (capturing && !clipMode && generation == token && frames.size < 16) frames.add(frame)
+                }
             }
         } catch (error: Exception) {
             synchronized(lock) { if (capturing) captureError = error }
         } finally { image.close() }
     }
 
+    /** Ảnh cảm biến đã xoay đứng, không lật gương (giống frame webcam đưa vào MediaPipe lúc train). */
+    private fun uprightBitmap(image: ImageProxy): Bitmap {
+        val bitmap = image.toBitmap()
+        val degrees = image.imageInfo.rotationDegrees
+        if (degrees == 0) return bitmap
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height,
+            Matrix().apply { postRotate(degrees.toFloat()) }, true).also { if (it !== bitmap) bitmap.recycle() }
+    }
+
     private fun encode(image: ImageProxy): SignFrame {
         // CameraX handles pixel format and row padding; rotate actual sensor pixels before upload.
-        val bitmap = image.toBitmap()
-        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height,
-            Matrix().apply { postRotate(image.imageInfo.rotationDegrees.toFloat()) }, true)
+        val rotated = uprightBitmap(image)
         val scale = minOf(1f, 640f / maxOf(rotated.width, rotated.height))
         val resized = Bitmap.createScaledBitmap(rotated,
             (rotated.width * scale).toInt().coerceAtLeast(1),
@@ -141,8 +216,12 @@ class SignCameraDataSource(private val context: Context) : CameraPreviewControll
             }
             return SignFrame(bytes, resized.width, resized.height)
         } finally {
-            setOf(resized, rotated, bitmap).forEach { it.recycle() }
+            setOf(resized, rotated).forEach { it.recycle() }
         }
     }
-}
 
+    private companion object {
+        /** Trần an toàn bộ nhớ: 4 giây × 30 fps. */
+        const val MAX_CLIP_FRAMES = 120
+    }
+}

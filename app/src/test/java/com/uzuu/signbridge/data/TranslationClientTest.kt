@@ -175,19 +175,6 @@ class TranslationClientTest {
             BridgeApi(client, server.url("/").toString(), true),
             enableMockFallback = true,
         )
-        // Simulate server returning 502 Bad Gateway (AI_UPSTREAM_ERROR)
-        server.enqueue(MockResponse().setResponseCode(502))
-        val signResult = repoWithFallback.recognizeSign(
-            ServiceContext.CAFE,
-            List(4) { SignFrame(byteArrayOf(it.toByte()), 640, 480) },
-            listOf("Cà phê"),
-            null,
-        )
-        assertFalse(signResult.needsConfirmation)
-        assertTrue(signResult.confidence >= 0.7)
-        assertTrue(signResult.sentence.contains("cà phê"))
-        assertTrue(signResult.suggestedChips.isNotEmpty())
-
         // Simulate server returning 504 Gateway Timeout (AI_TIMEOUT)
         server.enqueue(MockResponse().setResponseCode(504))
         val expanded = repoWithFallback.expand(ServiceContext.CAFE, listOf("Cà phê sữa"), null)
@@ -198,6 +185,84 @@ class TranslationClientTest {
         val summary = repoWithFallback.summarize(ServiceContext.CAFE, RecordedAudio(byteArrayOf(1, 2), 1000), null)
         assertEquals("DRINK", summary.iconCode)
         assertTrue(summary.quickReplies.isNotEmpty())
+    }
+
+    @Test fun signNeverFallsBackToMockSentenceWhenServerFails() = runBlocking {
+        val repoWithFallback = TranslationRepositoryImpl(
+            BridgeApi(client, server.url("/").toString(), true),
+            enableMockFallback = true,
+        )
+        val frames = List(4) { SignFrame(byteArrayOf(it.toByte()), 640, 480) }
+        val failures = listOf(
+            MockResponse().setResponseCode(502) to BridgeError.AI_UPSTREAM_ERROR,
+            response("""{"error":{"code":"AI_TIMEOUT","message":"test"}}""", 504) to BridgeError.AI_TIMEOUT,
+            response("""{"glosses":"ĐAU"}""") to BridgeError.AI_UPSTREAM_ERROR,
+        )
+        failures.forEach { (reply, expected) ->
+            server.enqueue(reply)
+            try {
+                repoWithFallback.recognizeSign(ServiceContext.CAFE, frames, emptyList(), null)
+                fail("Expected $expected, not a mock sentence")
+            } catch (error: BridgeException) { assertEquals(expected, error.code) }
+        }
+    }
+
+    @Test fun signKeepsRecognitionWhenServerSuggestionsAreOutsideContract() = runBlocking {
+        val frames = List(4) { SignFrame(byteArrayOf(it.toByte()), 640, 480) }
+        server.enqueue(response("""{"glosses":["CÀ PHÊ"],"confidence":0.9,"spoken_sentence":"Cho mình một cà phê nhé.","suggestedChips":["Cà phê"]}"""))
+        val few = repo.recognizeSign(ServiceContext.CAFE, frames, emptyList(), null)
+        assertFalse(few.needsConfirmation)
+        assertEquals("Cho mình một cà phê nhé.", few.sentence)
+        assertEquals(listOf("Cà phê"), few.suggestedChips)
+
+        server.enqueue(response("""{"glosses":["UNKNOWN","NGÀY"],"confidence":0.4,"spoken_sentence":"","suggestedChips":["Một ngày"," ","Hai ngày","Một ngày","A","B","C","D","E"]}"""))
+        val many = repo.recognizeSign(ServiceContext.CAFE, frames, emptyList(), null)
+        assertTrue(many.needsConfirmation)
+        assertEquals(listOf("Một ngày", "Hai ngày", "A", "B", "C", "D"), many.suggestedChips)
+    }
+
+    @Test fun deviceGlossesUseJsonContractAndKeepModelLabels() = runBlocking {
+        server.enqueue(response("""{"glosses":["ĐAU BỤNG","HIỆU THUỐC"],"confidence":0.81,"spoken_sentence":"Mình bị đau bụng, muốn tìm hiệu thuốc ạ.","suggestedChips":["đau bụng","hiệu thuốc"]}"""))
+        val result = repo.composeSignGlosses(ServiceContext.PHARMACY,
+            listOf(GlossPrediction("đau bụng", 0.93f), GlossPrediction("hiệu thuốc", 0.81f)),
+            listOf("Dị ứng penicillin"), "Bạn cần gì?")
+        assertFalse(result.needsConfirmation)
+        assertEquals(listOf("ĐAU BỤNG", "HIỆU THUỐC"), result.glosses)
+        assertEquals("Mình bị đau bụng, muốn tìm hiệu thuốc ạ.", result.sentence)
+        val request = server.takeRequest()
+        assertEquals("/api/sign/glosses", request.path)
+        assertEquals("POST", request.method)
+        val body = JSONObject(request.body.readUtf8())
+        assertEquals("PHARMACY", body.getString("context"))
+        assertEquals("đau bụng", body.getJSONArray("glosses").getString(0))
+        assertEquals(0.81, body.getJSONArray("confidences").getDouble(1), 1e-6)
+        assertEquals("Dị ứng penicillin", body.getJSONArray("personalChips").getString(0))
+        assertEquals("Bạn cần gì?", body.getString("previousIncoming"))
+    }
+
+    @Test fun deviceGlossesUnknownBlanksSentenceAndOldServerIsNotConfigured() = runBlocking {
+        server.enqueue(response("""{"glosses":["UNKNOWN"],"confidence":0.69,"spoken_sentence":"Không được đọc.","suggestedChips":["hiệu thuốc"]}"""))
+        val unsure = repo.composeSignGlosses(ServiceContext.PHARMACY,
+            listOf(GlossPrediction("hiệu thuốc", 0.42f)), emptyList(), null)
+        assertTrue(unsure.needsConfirmation)
+        assertEquals("", unsure.sentence)
+        assertTrue(JSONObject(server.takeRequest().body.readUtf8()).isNull("previousIncoming"))
+
+        server.enqueue(response("""{"detail":"Not Found"}""", 404))
+        try {
+            repo.composeSignGlosses(ServiceContext.PHARMACY, listOf(GlossPrediction("sốt", 0.9f)), emptyList(), null)
+            fail("Expected unavailable endpoint")
+        } catch (error: BridgeException) { assertEquals(BridgeError.NOT_CONFIGURED, error.code) }
+    }
+
+    @Test fun signOverlongSentenceIsNotSpokenButGlossesRemain() = runBlocking {
+        val longSentence = List(41) { "từ" }.joinToString(" ")
+        server.enqueue(response("""{"glosses":["CÀ PHÊ"],"confidence":0.95,"spoken_sentence":"$longSentence","suggestedChips":["Cà phê","Đá","Mang đi"]}"""))
+        val result = repo.recognizeSign(ServiceContext.CAFE,
+            List(4) { SignFrame(byteArrayOf(it.toByte()), 640, 480) }, emptyList(), null)
+        assertTrue(result.needsConfirmation)
+        assertEquals("", result.sentence)
+        assertEquals(listOf("CÀ PHÊ"), result.glosses)
     }
 }
 

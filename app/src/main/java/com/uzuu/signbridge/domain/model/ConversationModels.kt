@@ -43,11 +43,16 @@ data class SpeechSummary(
     val quickReplies: List<String>,
 )
 
+/** Một ký hiệu nhận diện trên máy (mục 4.2a): nhãn nguyên văn của model + xác suất softmax. */
+data class GlossPrediction(val label: String, val confidence: Float)
+
 data class SignResult(
     val glosses: List<String>,
     val confidence: Double,
     val sentence: String,
     val suggestedChips: List<String>,
+    /** true khi câu được ghép tại máy vì không gọi được server. */
+    val isOffline: Boolean = false,
 ) {
     val needsConfirmation: Boolean
         get() = confidence < 0.7 || glosses.isEmpty() ||
