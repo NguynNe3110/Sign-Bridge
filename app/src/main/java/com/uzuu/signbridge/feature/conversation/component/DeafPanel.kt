@@ -149,6 +149,8 @@ internal fun CustomerMessages(
             summary = state.summary,
             onQuickReply = onQuickReply,
             quickRepliesEnabled = !state.isBusy,
+            selectedChips = state.selectedChips,
+            canSelectMoreChips = state.canSelectMoreChips,
         )
     }
 

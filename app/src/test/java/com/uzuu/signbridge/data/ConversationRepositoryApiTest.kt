@@ -102,6 +102,18 @@ class ConversationRepositoryApiTest {
     }
 
     @Test
+    fun getChipsFallsBackToLocalCacheWhenServerReturnsEmptyList() = runBlocking {
+        // Enqueue empty array from server
+        server.enqueue(jsonResponse("[]"))
+
+        val chips = repo.getChips(ServiceContext.CAFE)
+        // Should NOT wipe SQLite, but return cached seed chips (15 chips)
+        assertEquals(15, chips.size)
+        val inCache = dao.chips("CAFE")
+        assertEquals(15, inCache.size)
+    }
+
+    @Test
     fun getChipsFallsBackToLocalCacheWhenServerFails() = runBlocking {
         // Enqueue 500 error from server
         server.enqueue(jsonResponse("""{"detail":"Server error"}""", 500))

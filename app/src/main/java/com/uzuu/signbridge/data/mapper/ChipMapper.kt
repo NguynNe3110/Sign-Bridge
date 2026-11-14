@@ -12,7 +12,7 @@ fun JSONObject.toChipResponseDto(): ChipResponseDto = ChipResponseDto(
     text = getString("text"),
     context = getString("context"),
     isSystem = optBoolean("is_system", false),
-    userId = optString("user_id").takeIf { it.isNotBlank() },
+    userId = if (isNull("user_id")) null else optString("user_id").takeIf { it.isNotBlank() && it != "null" },
     usageCount = optInt("usage_count", 0),
 )
 

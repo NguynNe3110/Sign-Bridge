@@ -75,6 +75,25 @@ class ConversationUseCaseTest {
         assertEquals(0, remote.calls)
     }
 
+    @Test fun sendChipsValidatesAllowedRangeOneToFive() = runTest {
+        val local = MemoryConversation()
+        val remote = StubTranslation()
+        val useCase = SendChipsUseCase(local, remote)
+
+        val chips5 = (1..5).map { QuickChip("chip-$it", ServiceContext.CAFE, "Thẻ $it", ChipCategory.DETAIL) }
+        val result = useCase(session, chips5, null)
+        assertEquals("Cho mình cà phê sữa.", result.sentence)
+
+        val chips6 = (1..6).map { QuickChip("chip-$it", ServiceContext.CAFE, "Thẻ $it", ChipCategory.DETAIL) }
+        try {
+            useCase(session, chips6, null)
+            fail("Expected invalid request for 6 chips")
+        } catch (error: BridgeException) {
+            assertEquals(BridgeError.INVALID_REQUEST, error.code)
+            assertEquals("Chọn 1–5 thẻ trong ngữ cảnh hiện tại.", error.message)
+        }
+    }
+
     @Test fun framePolicyRejectsShortOversizedAndPartialClips() {
         assertEquals(0, CapturePolicy.usableFrameCount(4, 1499))
         assertEquals(4, CapturePolicy.usableFrameCount(7, 2999))

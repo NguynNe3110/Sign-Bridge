@@ -29,7 +29,7 @@
     <string name="device_loading">Đang mở dữ liệu trên thiết bị…</string>
     <string name="retry_data">Mở lại dữ liệu</string>
     <string name="chips_title">Thẻ từ khóa</string>
-    <string name="chips_help">Chọn 1–3 thẻ theo thứ tự muốn nói. Thẻ cá nhân có thể thêm hoặc xóa; dữ liệu được lưu trên máy.</string>
+    <string name="chips_help">Chọn 1–5 thẻ theo thứ tự muốn nói. Thẻ cá nhân có thể thêm hoặc xóa; dữ liệu được lưu trên máy.</string>
     <string name="new_chip_hint">Thẻ cá nhân mới (tối đa 50 ký tự)</string>
     <string name="add_chip">Lưu thẻ cá nhân</string>
     <string name="delete_chip">Xóa thẻ cá nhân đang chọn</string>

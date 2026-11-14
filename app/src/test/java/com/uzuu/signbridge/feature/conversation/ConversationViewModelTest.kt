@@ -40,6 +40,8 @@ class ConversationViewModelTest {
             QuickChip("2", ContextType.PHARMACY, "Sốt", isPersonal = false),
             QuickChip("3", ContextType.PHARMACY, "Ho", isPersonal = false),
             QuickChip("4", ContextType.PHARMACY, "Dị ứng penicillin", isPersonal = true),
+            QuickChip("5", ContextType.PHARMACY, "Sổ mũi", isPersonal = false),
+            QuickChip("6", ContextType.PHARMACY, "Đau họng", isPersonal = false),
         ),
     )
 
@@ -67,19 +69,19 @@ class ConversationViewModelTest {
     @Test
     fun `chips load from repository`() {
         val vm = createViewModel()
-        assertEquals(4, vm.uiState.value.chips.size)
+        assertEquals(6, vm.uiState.value.chips.size)
     }
 
     @Test
-    fun `select at most 3 chips in tap order and toggle off`() {
+    fun `select at most 5 chips in tap order and toggle off`() {
         val vm = createViewModel()
-        listOf("Sốt", "Đau đầu", "Ho", "Dị ứng penicillin").forEach {
+        listOf("Sốt", "Đau đầu", "Ho", "Dị ứng penicillin", "Sổ mũi", "Đau họng").forEach {
             vm.onEvent(ConversationUiEvent.ChipToggled(it))
         }
-        assertEquals(listOf("Sốt", "Đau đầu", "Ho"), vm.uiState.value.selectedChips)
+        assertEquals(listOf("Sốt", "Đau đầu", "Ho", "Dị ứng penicillin", "Sổ mũi"), vm.uiState.value.selectedChips)
 
         vm.onEvent(ConversationUiEvent.ChipToggled("Đau đầu"))
-        assertEquals(listOf("Sốt", "Ho"), vm.uiState.value.selectedChips)
+        assertEquals(listOf("Sốt", "Ho", "Dị ứng penicillin", "Sổ mũi"), vm.uiState.value.selectedChips)
 
         vm.onEvent(ConversationUiEvent.ClearChipsClicked)
         assertTrue(vm.uiState.value.selectedChips.isEmpty())
@@ -195,11 +197,59 @@ class ConversationViewModelTest {
         val vm = createViewModel()
 
         vm.onEvent(ConversationUiEvent.QuickReplyClicked("Lấy 1 hộp"))
+        assertEquals(listOf("Lấy 1 hộp"), vm.uiState.value.selectedChips)
+
+        vm.onEvent(ConversationUiEvent.SendChipsClicked)
 
         assertTrue(conversation.expandCalls.isEmpty())
         assertEquals(listOf("Lấy 1 hộp"), speaker.spoken)
         assertEquals("Lấy 1 hộp", vm.uiState.value.spokenSentence)
         assertEquals(TurnDirection.OUTGOING, conversation.savedTurns.single().direction)
+    }
+
+    @Test
+    fun `quick reply selects at most one and combines with keyword chips`() = runTest(mainRule.dispatcher) {
+        val vm = createViewModel()
+        conversation.summaryResult = AppResult.Success(summary)
+        // Receive summary with quickReplies: ["Lấy 1 hộp", "Chuyển khoản QR", "Cảm ơn"]
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        vm.onEvent(ConversationUiEvent.MicReleased)
+        assertEquals(summary, vm.uiState.value.summary)
+
+        // 1. Select first quick reply
+        vm.onEvent(ConversationUiEvent.QuickReplyClicked("Lấy 1 hộp"))
+        assertEquals(listOf("Lấy 1 hộp"), vm.uiState.value.selectedChips)
+
+        // 2. Select second quick reply -> replaces first quick reply (only 1 of 3 allowed)
+        vm.onEvent(ConversationUiEvent.QuickReplyClicked("Chuyển khoản QR"))
+        assertEquals(listOf("Chuyển khoản QR"), vm.uiState.value.selectedChips)
+
+        // 3. Combine with keyword chips
+        vm.onEvent(ConversationUiEvent.ChipToggled("Sốt"))
+        vm.onEvent(ConversationUiEvent.ChipToggled("Đau đầu"))
+        assertEquals(listOf("Chuyển khoản QR", "Sốt", "Đau đầu"), vm.uiState.value.selectedChips)
+
+        // 4. Send combined chips -> calls AI expand
+        vm.onEvent(ConversationUiEvent.SendChipsClicked)
+        assertEquals("Câu mở rộng.", vm.uiState.value.spokenSentence)
+        assertEquals(listOf("Chuyển khoản QR", "Sốt", "Đau đầu"), conversation.expandCalls.single().first)
+        assertEquals(listOf("Câu mở rộng."), speaker.spoken)
+        assertTrue(vm.uiState.value.selectedChips.isEmpty())
+    }
+
+    @Test
+    fun `quick reply can be unselected`() = runTest(mainRule.dispatcher) {
+        val vm = createViewModel()
+        conversation.summaryResult = AppResult.Success(summary)
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        vm.onEvent(ConversationUiEvent.MicReleased)
+
+        vm.onEvent(ConversationUiEvent.QuickReplyClicked("Lấy 1 hộp"))
+        assertEquals(listOf("Lấy 1 hộp"), vm.uiState.value.selectedChips)
+
+        // Click again to unselect
+        vm.onEvent(ConversationUiEvent.QuickReplyClicked("Lấy 1 hộp"))
+        assertTrue(vm.uiState.value.selectedChips.isEmpty())
     }
 
     @Test
@@ -217,6 +267,7 @@ class ConversationViewModelTest {
     fun `replay speaks last sentence again`() {
         val vm = createViewModel()
         vm.onEvent(ConversationUiEvent.QuickReplyClicked("Cảm ơn"))
+        vm.onEvent(ConversationUiEvent.SendChipsClicked)
 
         vm.onEvent(ConversationUiEvent.ReplayClicked)
 

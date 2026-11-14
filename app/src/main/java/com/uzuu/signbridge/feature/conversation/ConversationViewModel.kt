@@ -96,7 +96,7 @@ class ConversationViewModel(
                     is ConversationUiEvent.ChipToggled -> toggleChip(event.label)
                     ConversationUiEvent.ClearChipsClicked -> _uiState.update { it.copy(selectedChips = emptyList()) }
                     ConversationUiEvent.SendChipsClicked -> sendSelectedChips()
-                    is ConversationUiEvent.QuickReplyClicked -> quickReply(event.reply)
+                    is ConversationUiEvent.QuickReplyClicked -> toggleQuickReply(event.reply)
                     ConversationUiEvent.ReplayClicked -> {
                         val sentence = uiState.value.spokenSentence
                         if (sentence.isNotBlank()) {
@@ -110,8 +110,29 @@ class ConversationViewModel(
         }
     }
 
+    private fun toggleQuickReply(reply: String) {
+        val current = uiState.value
+        val quickReplies = current.summary?.quickReplies.orEmpty()
+        _uiState.update { state ->
+            when {
+                reply in state.selectedChips -> state.copy(selectedChips = state.selectedChips - reply)
+                quickReplies.isNotEmpty() && quickReplies.any { it in state.selectedChips } -> {
+                    val updated = state.selectedChips.map { if (it in quickReplies) reply else it }
+                    state.copy(selectedChips = updated)
+                }
+                state.canSelectMoreChips -> state.copy(selectedChips = state.selectedChips + reply)
+                else -> state
+            }
+        }
+    }
+
     private fun toggleChip(label: String) {
         val current = uiState.value
+        val quickReplies = current.summary?.quickReplies.orEmpty()
+        if (label in quickReplies) {
+            toggleQuickReply(label)
+            return
+        }
         if (label !in current.chips.map { it.label } && label !in current.pendingSign?.suggestedChips.orEmpty()) return
         _uiState.update { state ->
             when {
@@ -157,6 +178,18 @@ class ConversationViewModel(
         val state = uiState.value
         val currentSession = session ?: return
         if (state.selectedChips.isEmpty()) return
+        val quickReplies = state.summary?.quickReplies.orEmpty()
+        val isSingleQuickReply = state.selectedChips.size == 1 &&
+            (state.selectedChips.single() in quickReplies ||
+             (state.selectedChips.single() !in state.chips.map { it.label } &&
+              state.selectedChips.single() !in state.pendingSign?.suggestedChips.orEmpty()))
+        if (isSingleQuickReply) {
+            val reply = state.selectedChips.single()
+            _uiState.update { it.copy(spokenSentence = reply, isSpeaking = true, isOffline = false,
+                selectedChips = emptyList(), pendingSign = null) }
+            runTask(false) { speakReply(currentSession, reply); speechFinished() }
+            return
+        }
         _uiState.update { it.copy(isExpanding = true, deafError = null, deafErrorMessage = null) }
         runTask(false) {
             val result = sendChips.fromLabels(currentSession, state.selectedChips, state.summary?.summary)

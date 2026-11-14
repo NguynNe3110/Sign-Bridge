@@ -50,8 +50,8 @@ class DeviceCheckViewModel(
                 if (current.chips.none { it.id == event.id }) return
                 val selected = current.selectedIds.toMutableSet()
                 if (!selected.remove(event.id)) {
-                    if (selected.size >= 3) {
-                        mutableState.update { it.copy(message = "Chọn tối đa 3 thẻ, theo thứ tự muốn nói.") }
+                    if (selected.size >= 5) {
+                        mutableState.update { it.copy(message = "Chọn tối đa 5 thẻ, theo thứ tự muốn nói.") }
                         return
                     }
                     selected.add(event.id)
@@ -163,7 +163,7 @@ class DeviceCheckViewModel(
             mutableState.value = DeviceCheckUiState(context = context, session = session, chips = chips,
                 history = history, operation = DeviceOperation.LOADING, cameraReady = state.value.cameraReady,
                 speechCompletedCount = state.value.speechCompletedCount,
-                message = "Sẵn sàng. Thêm thẻ hoặc chọn 1–3 thẻ để thử lưu và gửi.")
+                message = "Sẵn sàng. Thêm thẻ hoặc chọn 1–5 thẻ để thử lưu và gửi.")
         }
     }
 

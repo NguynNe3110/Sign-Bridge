@@ -52,7 +52,7 @@ class AppContainer(context: Context) {
         api = bridgeApi,
         session = userSession,
     )
-    val translation: TranslationRepository = TranslationRepositoryImpl(bridgeApi)
+    val translation: TranslationRepository = TranslationRepositoryImpl(bridgeApi, enableMockFallback = true)
     val device: DeviceRepository = DeviceRepositoryImpl(
         camera, AudioRecorderDataSource(appContext), SpeechDataSource(appContext),
     )

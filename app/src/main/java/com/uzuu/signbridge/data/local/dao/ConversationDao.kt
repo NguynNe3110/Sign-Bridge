@@ -34,6 +34,21 @@ class ConversationDao(private val database: AppDatabase) {
             }
         }
 
+    fun chip(id: String): QuickChipEntity? =
+        database.readableDatabase.rawQuery(
+            "SELECT * FROM QuickChip WHERE id = ? LIMIT 1",
+            arrayOf(id),
+        ).use { cursor ->
+            if (cursor.moveToFirst()) {
+                QuickChipEntity(
+                    cursor.text("id"), cursor.text("contextId"),
+                    cursor.text("label"), cursor.text("category"),
+                    cursor.number("usageCount").toInt(),
+                    cursor.number("isPersonal") == 1L,
+                )
+            } else null
+        }
+
     fun insertChip(chip: QuickChipEntity) {
         database.writableDatabase.execSQL(
             "INSERT INTO QuickChip(id, contextId, label, category, isPersonal, labelKey) VALUES (?, ?, ?, ?, 1, ?)",

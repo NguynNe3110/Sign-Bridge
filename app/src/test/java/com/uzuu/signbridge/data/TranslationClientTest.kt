@@ -169,5 +169,35 @@ class TranslationClientTest {
         pending.cancelAndJoin()
         assertTrue(pending.isCancelled)
     }
+
+    @Test fun mockFallbackReturnsRealisticDataWhenServerUnavailable() = runBlocking {
+        val repoWithFallback = TranslationRepositoryImpl(
+            BridgeApi(client, server.url("/").toString(), true),
+            enableMockFallback = true,
+        )
+        // Simulate server returning 502 Bad Gateway (AI_UPSTREAM_ERROR)
+        server.enqueue(MockResponse().setResponseCode(502))
+        val signResult = repoWithFallback.recognizeSign(
+            ServiceContext.CAFE,
+            List(4) { SignFrame(byteArrayOf(it.toByte()), 640, 480) },
+            listOf("Cà phê"),
+            null,
+        )
+        assertFalse(signResult.needsConfirmation)
+        assertTrue(signResult.confidence >= 0.7)
+        assertTrue(signResult.sentence.contains("cà phê"))
+        assertTrue(signResult.suggestedChips.isNotEmpty())
+
+        // Simulate server returning 504 Gateway Timeout (AI_TIMEOUT)
+        server.enqueue(MockResponse().setResponseCode(504))
+        val expanded = repoWithFallback.expand(ServiceContext.CAFE, listOf("Cà phê sữa"), null)
+        assertTrue(expanded.contains("Cà phê sữa"))
+
+        // Simulate server returning 404 (NOT_CONFIGURED)
+        server.enqueue(MockResponse().setResponseCode(404))
+        val summary = repoWithFallback.summarize(ServiceContext.CAFE, RecordedAudio(byteArrayOf(1, 2), 1000), null)
+        assertEquals("DRINK", summary.iconCode)
+        assertTrue(summary.quickReplies.isNotEmpty())
+    }
 }
 

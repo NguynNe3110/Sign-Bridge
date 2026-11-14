@@ -38,10 +38,10 @@ class SendChipsUseCase(
     }
 
     private fun validate(labels: List<String>) {
-        if (labels.size !in 1..3 || labels.distinct().size != labels.size ||
+        if (labels.size !in 1..5 || labels.distinct().size != labels.size ||
             labels.any { it.isBlank() || it.length > 50 }) invalid()
     }
     private fun invalid(): Nothing =
-        throw BridgeException(BridgeError.INVALID_REQUEST, "Chọn 1–3 thẻ trong ngữ cảnh hiện tại.")
+        throw BridgeException(BridgeError.INVALID_REQUEST, "Chọn 1–5 thẻ trong ngữ cảnh hiện tại.")
 }
 

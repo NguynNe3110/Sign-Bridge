@@ -1,5 +1,6 @@
 package com.uzuu.signbridge.data.repository
 
+import com.uzuu.signbridge.data.local.datasource.MockTranslationFallback
 import com.uzuu.signbridge.data.mapper.toDomain
 import com.uzuu.signbridge.data.remote.api.BridgeApi
 import com.uzuu.signbridge.data.remote.dto.response.*
@@ -12,19 +13,32 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
-class TranslationRepositoryImpl(private val api: BridgeApi) : TranslationRepository {
-    override suspend fun checkHealth(): Boolean =
+class TranslationRepositoryImpl(
+    private val api: BridgeApi,
+    private val enableMockFallback: Boolean = false,
+) : TranslationRepository {
+    override suspend fun checkHealth(): Boolean = try {
         api.request("health").optString("status") == "UP"
+    } catch (e: Exception) {
+        if (enableMockFallback && isRecoverable(e)) true else throw e
+    }
 
     override suspend fun expand(context: ServiceContext, chips: List<String>, previousIncoming: String?): String {
         if (chips.size !in 1..5 || chips.any { it.isBlank() || it.length > 50 }) invalid("Thẻ không hợp lệ.")
-        val json = JSONObject().put("context", context.name).put("chips", JSONArray(chips))
-            .put("previousIncoming", previousIncoming?.take(300) ?: JSONObject.NULL)
-        val response = api.request("expand", json.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-        return decode {
-            response.text("spoken_sentence").also {
-                require(it.isNotBlank() && wordCount(it) <= 40)
+        try {
+            val json = JSONObject().put("context", context.name).put("chips", JSONArray(chips))
+                .put("previousIncoming", previousIncoming?.take(300) ?: JSONObject.NULL)
+            val response = api.request("expand", json.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+            return decode {
+                response.text("spoken_sentence").also {
+                    require(it.isNotBlank() && wordCount(it) <= 40)
+                }
             }
+        } catch (e: Exception) {
+            if (enableMockFallback && isRecoverable(e)) {
+                return MockTranslationFallback.mockExpand(context, chips)
+            }
+            throw e
         }
     }
 
@@ -33,24 +47,31 @@ class TranslationRepositoryImpl(private val api: BridgeApi) : TranslationReposit
         personalChips: List<String>, previousIncoming: String?,
     ): SignResult {
         CapturePolicy.validateFrames(frames)
-        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
-            .addFormDataPart("context", context.name)
-            .addFormDataPart("personalChips", JSONArray(personalChips.take(20)).toString())
-        previousIncoming?.take(300)?.let { body.addFormDataPart("previousIncoming", it) }
-        frames.forEachIndexed { index, frame ->
-            body.addFormDataPart("frames", "frame_$index.jpg", frame.jpeg.toRequestBody("image/jpeg".toMediaType()))
-        }
-        val response = api.request("sign", body.build())
-        return decode {
-            val confidence = (response.get("confidence") as Number).toDouble()
-            require(confidence.isFinite() && confidence in 0.0..1.0)
-            val glosses = response.strings("glosses")
-            require(glosses.isNotEmpty() && glosses.size <= 20 && glosses.none { it.isBlank() })
-            val suggestions = response.strings("suggestedChips")
-            require(suggestions.size in 3..6 && suggestions.all { it.isNotBlank() && it.length <= 50 })
-            val sentence = response.text("spoken_sentence")
-            require(wordCount(sentence) <= 40)
-            SignResponseDto(glosses, confidence, sentence, suggestions).toDomain(context)
+        try {
+            val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("context", context.name)
+                .addFormDataPart("personalChips", JSONArray(personalChips.take(20)).toString())
+            previousIncoming?.take(300)?.let { body.addFormDataPart("previousIncoming", it) }
+            frames.forEachIndexed { index, frame ->
+                body.addFormDataPart("frames", "frame_$index.jpg", frame.jpeg.toRequestBody("image/jpeg".toMediaType()))
+            }
+            val response = api.request("sign", body.build())
+            return decode {
+                val confidence = (response.get("confidence") as Number).toDouble()
+                require(confidence.isFinite() && confidence in 0.0..1.0)
+                val glosses = response.strings("glosses")
+                require(glosses.isNotEmpty() && glosses.size <= 20 && glosses.none { it.isBlank() })
+                val suggestions = response.strings("suggestedChips")
+                require(suggestions.size in 3..6 && suggestions.all { it.isNotBlank() && it.length <= 50 })
+                val sentence = response.text("spoken_sentence")
+                require(wordCount(sentence) <= 40)
+                SignResponseDto(glosses, confidence, sentence, suggestions).toDomain(context)
+            }
+        } catch (e: Exception) {
+            if (enableMockFallback && isRecoverable(e)) {
+                return MockTranslationFallback.mockSign(context, personalChips)
+            }
+            throw e
         }
     }
 
@@ -58,30 +79,48 @@ class TranslationRepositoryImpl(private val api: BridgeApi) : TranslationReposit
         context: ServiceContext, audio: RecordedAudio, previousOutgoing: String?,
     ): SpeechSummary {
         CapturePolicy.validateAudio(audio)
-        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
-            .addFormDataPart("context", context.name)
-            .addFormDataPart("audio", "reply.m4a", audio.bytes.toRequestBody("audio/mp4".toMediaType()))
-        previousOutgoing?.take(300)?.let { body.addFormDataPart("previousOutgoing", it) }
-        val response = api.request("summarize", body.build())
-        return decode {
-            val transcript = response.text("transcript")
-            val summary = response.text("summary")
-            val icon = response.text("iconCode")
-            val replies = response.strings("quickReplies")
-            // Direct AI may retain extra words to preserve numbers; do not truncate its output.
-            require(transcript.isNotBlank() && summary.isNotBlank())
-            require(icon in ICONS)
-            require(replies.size == 3 && replies.all { it.isNotBlank() })
-            val highlights = response.getJSONArray("highlights").let { items ->
-                (0 until items.length()).map { index ->
-                    val item = items.getJSONObject(index)
-                    val type = item.text("type")
-                    require(type in HIGHLIGHT_TYPES)
-                    HighlightResponseDto(type, item.text("text"))
+        try {
+            val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("context", context.name)
+                .addFormDataPart("audio", "reply.m4a", audio.bytes.toRequestBody("audio/mp4".toMediaType()))
+            previousOutgoing?.take(300)?.let { body.addFormDataPart("previousOutgoing", it) }
+            val response = api.request("summarize", body.build())
+            return decode {
+                val transcript = response.text("transcript")
+                val summary = response.text("summary")
+                val icon = response.text("iconCode")
+                val replies = response.strings("quickReplies")
+                // Direct AI may retain extra words to preserve numbers; do not truncate its output.
+                require(transcript.isNotBlank() && summary.isNotBlank())
+                require(icon in ICONS)
+                require(replies.size == 3 && replies.all { it.isNotBlank() })
+                val highlights = response.getJSONArray("highlights").let { items ->
+                    (0 until items.length()).map { index ->
+                        val item = items.getJSONObject(index)
+                        val type = item.text("type")
+                        require(type in HIGHLIGHT_TYPES)
+                        HighlightResponseDto(type, item.text("text"))
+                    }
                 }
+                SummaryResponseDto(transcript, summary, highlights, icon, replies).toDomain()
             }
-            SummaryResponseDto(transcript, summary, highlights, icon, replies).toDomain()
+        } catch (e: Exception) {
+            if (enableMockFallback && isRecoverable(e)) {
+                return MockTranslationFallback.mockSummarize(context)
+            }
+            throw e
         }
+    }
+
+    private fun isRecoverable(error: Exception): Boolean = when (error) {
+        is CancellationException -> false
+        is BridgeException -> error.code in setOf(
+            BridgeError.NETWORK,
+            BridgeError.NOT_CONFIGURED,
+            BridgeError.AI_TIMEOUT,
+            BridgeError.AI_UPSTREAM_ERROR,
+        )
+        else -> false
     }
 
     private fun JSONObject.text(key: String): String = get(key) as String

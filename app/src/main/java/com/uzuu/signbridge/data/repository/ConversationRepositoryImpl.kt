@@ -51,8 +51,10 @@ class ConversationRepositoryImpl(
                 val userId = session.userId
                 val array = api.requestArray("chips?context=${context.name}&user_id=$userId", mapOf("X-User-Id" to userId))
                 val dtos = (0 until array.length()).map { array.getJSONObject(it).toChipResponseDto() }
-                dao.syncChips(context.name, dtos.map { it.toEntity() })
-                return@withContext dtos.map { it.toDomain() }
+                if (dtos.isNotEmpty()) {
+                    dao.syncChips(context.name, dtos.map { it.toEntity() })
+                    return@withContext dtos.map { it.toDomain() }
+                }
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (_: Exception) {
@@ -96,16 +98,15 @@ class ConversationRepositoryImpl(
         val normalized = normalizedLabel(label)
         if (api != null && session != null) {
             val userId = session.userId
-            val existing = storage {
-                listOf("CAFE", "PHARMACY", "PUBLIC", "CUSTOM").flatMap { dao.chips(it) }
-            }.firstOrNull { it.id == id }
+            val existing = storage { dao.chip(id) }
             val contextName = existing?.contextId ?: "CUSTOM"
 
             if (existing?.isPersonal == true) {
                 val deleteRes = api.delete("chips/$id?user_id=$userId", mapOf("X-User-Id" to userId))
-                if (deleteRes.optBoolean("success", false)) {
-                    storage { dao.deletePersonalChip(id) }
+                if (!deleteRes.optBoolean("success", false)) {
+                    throw BridgeException(BridgeError.INVALID_REQUEST, "Không thể cập nhật thẻ cá nhân.")
                 }
+                storage { dao.deletePersonalChip(id) }
             }
 
             val json = JSONObject().apply {

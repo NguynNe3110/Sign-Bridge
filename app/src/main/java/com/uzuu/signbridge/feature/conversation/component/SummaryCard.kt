@@ -55,6 +55,8 @@ fun SummaryCard(
     onQuickReply: (String) -> Unit,
     modifier: Modifier = Modifier,
     quickRepliesEnabled: Boolean = true,
+    selectedChips: List<String> = emptyList(),
+    canSelectMoreChips: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
     var showTranscript by rememberSaveable(summary.transcript) { mutableStateOf(false) }
@@ -117,17 +119,18 @@ fun SummaryCard(
                     verticalArrangement = Arrangement.spacedBy(Dimens.SpaceS),
                 ) {
                     summary.quickReplies.forEach { reply ->
-                        OutlinedButton(
+                        val index = selectedChips.indexOf(reply)
+                        val isSelected = index >= 0
+                        val order = if (isSelected) index + 1 else null
+                        val hasAnyQuickReplySelected = summary.quickReplies.any { it in selectedChips }
+                        val isEnabled = quickRepliesEnabled && (isSelected || canSelectMoreChips || hasAnyQuickReplySelected)
+                        KeywordChip(
+                            label = reply,
+                            selected = isSelected,
+                            order = order,
+                            enabled = isEnabled,
                             onClick = { onQuickReply(reply) },
-                            enabled = quickRepliesEnabled,
-                            modifier = Modifier
-                                .heightIn(min = Dimens.TouchTarget),
-                            shape = RoundedCornerShape(Dimens.CornerRadius),
-                            border = BorderStroke(Dimens.BorderWidth, colors.outline),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurface),
-                        ) {
-                            Text(text = reply, style = MaterialTheme.typography.labelLarge)
-                        }
+                        )
                     }
                 }
             }

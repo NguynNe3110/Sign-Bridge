@@ -49,6 +49,6 @@ data class ConversationUiState(
             !isStaffRecording && !isSummarizing
 
     companion object {
-        const val MAX_SELECTED_CHIPS = 3
+        const val MAX_SELECTED_CHIPS = 5
     }
 }
