@@ -106,6 +106,41 @@ class TranslationClientTest {
         } catch (error: BridgeException) { assertEquals(BridgeError.AI_UPSTREAM_ERROR, error.code) }
     }
 
+    @Test fun fastApiNoSpeechDetailRemainsTyped() = runBlocking {
+        server.enqueue(response("""{"detail":"NO_SPEECH_DETECTED"}""", 422))
+        try {
+            repo.summarize(ServiceContext.PHARMACY, RecordedAudio(byteArrayOf(1), 1000), null)
+            fail("Expected no-speech error")
+        } catch (error: BridgeException) { assertEquals(BridgeError.NO_SPEECH_DETECTED, error.code) }
+    }
+
+    @Test fun directAiLongQuickReplyAndCompleteSummaryArePreserved() = runBlocking {
+        val summary = "Một trà sữa trân châu ít đường và năm mươi phần trăm đá, tổng cộng ba mươi lăm nghìn đồng."
+        val reply = "Của em hết bao nhiêu tiền vậy?"
+        val json = JSONObject().put("transcript", summary).put("summary", summary)
+            .put("highlights", org.json.JSONArray()).put("iconCode", "DRINK")
+            .put("quickReplies", org.json.JSONArray(listOf("Dạ em lấy món này ạ", reply, "Chờ em một chút nhé")))
+        server.enqueue(response(json.toString()))
+        val result = repo.summarize(ServiceContext.CAFE, RecordedAudio(byteArrayOf(1), 1000), null)
+        assertEquals(summary, result.summary)
+        assertEquals(reply, result.quickReplies[1])
+    }
+
+    @Test fun offlineNgrokIsNetworkErrorInsteadOfInvalidRequest() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(404).setHeader("Ngrok-Error-Code", "ERR_NGROK_3200")
+            .setBody("The endpoint is offline."))
+        try { repo.checkHealth(); fail("Expected network error")
+        } catch (error: BridgeException) { assertEquals(BridgeError.NETWORK, error.code) }
+    }
+
+    @Test fun unavailableSignEndpointSuggestsChipsInsteadOfInvalidInput() = runBlocking {
+        server.enqueue(response("""{"detail":"Not Found"}""", 404))
+        try {
+            repo.recognizeSign(ServiceContext.CAFE, List(4) { SignFrame(byteArrayOf(1), 640, 480) }, emptyList(), null)
+            fail("Expected unavailable endpoint")
+        } catch (error: BridgeException) { assertEquals(BridgeError.NOT_CONFIGURED, error.code) }
+    }
+
     @Test fun bodyReadTimeoutIsTypedForOfflineFallback() = runBlocking {
         val shortClient = client.newBuilder().readTimeout(50, TimeUnit.MILLISECONDS).build()
         val shortRepo = TranslationRepositoryImpl(BridgeApi(shortClient, server.url("/").toString(), true))

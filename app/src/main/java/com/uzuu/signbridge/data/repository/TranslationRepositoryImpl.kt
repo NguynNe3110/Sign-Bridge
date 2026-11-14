@@ -68,9 +68,10 @@ class TranslationRepositoryImpl(private val api: BridgeApi) : TranslationReposit
             val summary = response.text("summary")
             val icon = response.text("iconCode")
             val replies = response.strings("quickReplies")
-            require(transcript.isNotBlank() && summary.isNotBlank() && wordCount(summary) <= 15)
+            // Direct AI may retain extra words to preserve numbers; do not truncate its output.
+            require(transcript.isNotBlank() && summary.isNotBlank())
             require(icon in ICONS)
-            require(replies.size == 3 && replies.all { it.isNotBlank() && wordCount(it) <= 6 })
+            require(replies.size == 3 && replies.all { it.isNotBlank() })
             val highlights = response.getJSONArray("highlights").let { items ->
                 (0 until items.length()).map { index ->
                     val item = items.getJSONObject(index)

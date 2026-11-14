@@ -57,21 +57,32 @@ class ConversationViewModel(
     fun onEvent(event: ConversationUiEvent) {
         when (event) {
             ConversationUiEvent.ScreenStopped -> cancel()
-            ConversationUiEvent.CameraUnavailable -> _uiState.update { it.copy(deafError = ErrorCode.DEVICE_ERROR) }
+            ConversationUiEvent.CameraUnavailable -> _uiState.update {
+                it.copy(deafError = ErrorCode.DEVICE_ERROR, deafErrorMessage = null)
+            }
             ConversationUiEvent.CaptureCancelled -> if (uiState.value.isSigning || uiState.value.isStaffRecording) cancel()
             is ConversationUiEvent.PermissionDenied -> _uiState.update {
-                if (event.camera) it.copy(deafError = ErrorCode.CAMERA_PERMISSION_REQUIRED)
-                else it.copy(staffError = ErrorCode.MIC_PERMISSION_REQUIRED)
+                if (event.camera) it.copy(deafError = ErrorCode.CAMERA_PERMISSION_REQUIRED, deafErrorMessage = null)
+                else it.copy(staffError = ErrorCode.MIC_PERMISSION_REQUIRED, staffErrorMessage = null,
+                    showMicReadyHint = false)
             }
-            ConversationUiEvent.DeafErrorDismissed -> _uiState.update { it.copy(deafError = null) }
-            ConversationUiEvent.StaffErrorDismissed -> _uiState.update { it.copy(staffError = null) }
+            ConversationUiEvent.MicPermissionGranted -> _uiState.update {
+                it.copy(showMicReadyHint = true, staffError = null, staffErrorMessage = null)
+            }
+            ConversationUiEvent.DeafErrorDismissed -> _uiState.update { it.copy(deafError = null, deafErrorMessage = null) }
+            ConversationUiEvent.StaffErrorDismissed -> _uiState.update { it.copy(staffError = null, staffErrorMessage = null) }
             ConversationUiEvent.SignReleased -> finishSign()
             ConversationUiEvent.MicReleased -> finishVoice()
+            ConversationUiEvent.MicPressed -> if (uiState.value.canStartMic) {
+                if (session == null) { initialize(); return }
+                // Cancel the speech job too: stopping the TTS engine alone may leave its waiter active.
+                if (uiState.value.isSpeaking) cancel()
+                startCapture(false)
+            }
             else -> if (!uiState.value.isBusy) {
                 if (session == null) { initialize(); return }
                 when (event) {
                     ConversationUiEvent.SignPressed -> startCapture(true)
-                    ConversationUiEvent.MicPressed -> startCapture(false)
                     is ConversationUiEvent.ChipToggled -> toggleChip(event.label)
                     ConversationUiEvent.ClearChipsClicked -> _uiState.update { it.copy(selectedChips = emptyList()) }
                     ConversationUiEvent.SendChipsClicked -> sendSelectedChips()
@@ -106,8 +117,9 @@ class ConversationViewModel(
             deviceRepository.stopSpeaking()
             if (sign) deviceRepository.startSignCapture() else deviceRepository.startRecording()
             _uiState.update {
-                if (sign) it.copy(isSigning = true, deafError = null)
-                else it.copy(isStaffRecording = true, staffError = null)
+                if (sign) it.copy(isSigning = true, deafError = null, deafErrorMessage = null)
+                else it.copy(isStaffRecording = true, staffError = null, staffErrorMessage = null,
+                    showMicReadyHint = false)
             }
             if (!sign) _effects.tryEmit(ConversationUiEffect.Vibrate(HapticPattern.STAFF_STARTED_SPEAKING))
             timer = viewModelScope.launch {
@@ -135,7 +147,7 @@ class ConversationViewModel(
         val state = uiState.value
         val currentSession = session ?: return
         if (state.selectedChips.isEmpty()) return
-        _uiState.update { it.copy(isExpanding = true, deafError = null) }
+        _uiState.update { it.copy(isExpanding = true, deafError = null, deafErrorMessage = null) }
         runTask(false) {
             val result = sendChips.fromLabels(currentSession, state.selectedChips, state.summary?.summary)
             displayAndSpeak(result.sentence, result.isOffline)
@@ -197,7 +209,11 @@ class ConversationViewModel(
             BridgeError.STORAGE -> ErrorCode.STORAGE_ERROR
             else -> ErrorCode.valueOf(error.code.name)
         } else ErrorCode.UNKNOWN
-        _uiState.update { if (staff) it.copy(staffError = code) else it.copy(deafError = code) }
+        val message = (error as? BridgeException)?.message?.takeIf { it.isNotBlank() }
+        _uiState.update {
+            if (staff) it.copy(staffError = code, staffErrorMessage = message)
+            else it.copy(deafError = code, deafErrorMessage = message)
+        }
     }
 
     private fun cancel() {

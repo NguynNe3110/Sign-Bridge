@@ -45,7 +45,19 @@ class BridgeApi(
         try { client.newCall(request).await().use {
             val raw = it.body?.string().orEmpty()
             if (!it.isSuccessful) {
-                val code = runCatching { JSONObject(raw).getJSONObject("error").getString("code") }.getOrNull()
+                if (it.header("Ngrok-Error-Code") != null) {
+                    throw BridgeException(BridgeError.NETWORK, "Đường hầm ngrok của dịch vụ AI chưa sẵn sàng. Kiểm tra URL và bật lại dịch vụ.")
+                }
+                if (it.code == 404 && path == "sign") {
+                    throw BridgeException(BridgeError.NOT_CONFIGURED,
+                        "Dịch vụ này chưa cung cấp API nhận diện ký hiệu. Hãy dùng thẻ từ khóa.")
+                }
+                // Spring wraps error.code; direct FastAPI returns a string in detail.
+                val code = runCatching {
+                    val json = JSONObject(raw)
+                    json.optJSONObject("error")?.optString("code")
+                        ?: (json.opt("detail") as? String)
+                }.getOrNull()
                 val known = BridgeError.entries.firstOrNull { error -> error.name == code &&
                     error in API_ERRORS }
                 val fallback = when (it.code) {

@@ -18,6 +18,8 @@ data class ConversationUiState(
     val isStaffRecording: Boolean = false,
     val isSummarizing: Boolean = false,
     val staffError: ErrorCode? = null,
+    val staffErrorMessage: String? = null,
+    val showMicReadyHint: Boolean = false,
 
     // Nửa dưới (người khiếm thính)
     val isSigning: Boolean = false,
@@ -32,6 +34,7 @@ data class ConversationUiState(
     val selectedChips: List<String> = emptyList(),
     val summary: SummaryResult? = null,
     val deafError: ErrorCode? = null,
+    val deafErrorMessage: String? = null,
 ) {
     val isBusy: Boolean
         get() = isInitializing || isSigning || isRecognizing || isExpanding ||
@@ -39,6 +42,11 @@ data class ConversationUiState(
 
     val canSelectMoreChips: Boolean
         get() = selectedChips.size < MAX_SELECTED_CHIPS
+
+    /** Staff may interrupt playback to reply, but cannot overlap capture or an API request. */
+    val canStartMic: Boolean
+        get() = !isInitializing && !isSigning && !isRecognizing && !isExpanding &&
+            !isStaffRecording && !isSummarizing
 
     companion object {
         const val MAX_SELECTED_CHIPS = 3

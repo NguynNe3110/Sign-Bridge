@@ -15,6 +15,10 @@ import com.uzuu.signbridge.domain.model.SummaryResult
 import com.uzuu.signbridge.domain.model.TurnDirection
 import com.uzuu.signbridge.domain.usecase.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import com.uzuu.signbridge.domain.model.BridgeError
+import com.uzuu.signbridge.domain.model.BridgeException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -218,5 +222,78 @@ class ConversationViewModelTest {
 
         assertEquals(listOf("Cảm ơn", "Cảm ơn"), speaker.spoken)
         assertEquals(1, conversation.savedTurns.size)
+    }
+
+    @Test
+    fun `staff can interrupt playback then release mic to receive summary`() = runTest(mainRule.dispatcher) {
+        speaker.speakAction = { awaitCancellation() }
+        conversation.summaryResult = AppResult.Success(summary)
+        val vm = createViewModel()
+        vm.onEvent(ConversationUiEvent.ChipToggled("Sốt"))
+        vm.onEvent(ConversationUiEvent.SendChipsClicked)
+        assertTrue(vm.uiState.value.isSpeaking)
+        assertTrue(vm.uiState.value.canStartMic)
+
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        assertTrue(vm.uiState.value.isStaffRecording)
+        assertFalse(vm.uiState.value.isSpeaking)
+        assertEquals(1, conversation.startVoiceCount)
+        assertTrue(speaker.stopped)
+        assertEquals(0, conversation.summarizeCalls)
+
+        vm.onEvent(ConversationUiEvent.MicReleased)
+        assertEquals(summary, vm.uiState.value.summary)
+        assertEquals(1, conversation.summarizeCalls)
+        assertFalse(vm.uiState.value.isBusy)
+    }
+
+    @Test
+    fun `mic does not restart or submit twice while transcription is pending`() = runTest(mainRule.dispatcher) {
+        val pending = CompletableDeferred<SummaryResult>()
+        conversation.summarizeAction = { pending.await() }
+        val vm = createViewModel()
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        assertEquals(1, conversation.startVoiceCount)
+        vm.onEvent(ConversationUiEvent.MicReleased)
+        assertTrue(vm.uiState.value.isSummarizing)
+        assertFalse(vm.uiState.value.canStartMic)
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        vm.onEvent(ConversationUiEvent.MicReleased)
+        assertEquals(1, conversation.summarizeCalls)
+        assertEquals(1, conversation.startVoiceCount)
+        pending.complete(summary)
+        assertEquals(summary, vm.uiState.value.summary)
+        assertFalse(vm.uiState.value.isBusy)
+    }
+
+    @Test
+    fun `granting mic permission prompts another hold without recording unexpectedly`() {
+        val vm = createViewModel()
+        vm.onEvent(ConversationUiEvent.MicPermissionGranted)
+        assertTrue(vm.uiState.value.showMicReadyHint)
+        assertEquals(0, conversation.startVoiceCount)
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        assertFalse(vm.uiState.value.showMicReadyHint)
+        assertTrue(vm.uiState.value.isStaffRecording)
+        vm.onEvent(ConversationUiEvent.CaptureCancelled)
+        assertFalse(vm.uiState.value.isBusy)
+        assertEquals(0, conversation.summarizeCalls)
+    }
+
+    @Test
+    fun `recorder failure shows its specific recovery message and allows retry`() {
+        val message = "Không thu được âm thanh. Hãy kiểm tra quyền micro."
+        speaker.recordingError = BridgeException(BridgeError.DEVICE, message)
+        val vm = createViewModel()
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        assertEquals(ErrorCode.DEVICE_ERROR, vm.uiState.value.staffError)
+        assertEquals(message, vm.uiState.value.staffErrorMessage)
+        assertFalse(vm.uiState.value.isBusy)
+        speaker.recordingError = null
+        vm.onEvent(ConversationUiEvent.MicPressed)
+        assertNull(vm.uiState.value.staffError)
+        assertNull(vm.uiState.value.staffErrorMessage)
+        vm.onEvent(ConversationUiEvent.CaptureCancelled)
     }
 }

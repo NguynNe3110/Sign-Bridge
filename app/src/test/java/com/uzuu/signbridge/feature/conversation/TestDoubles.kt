@@ -13,6 +13,8 @@ class RecordingConversationRepository : TranslationRepository {
         SignResult(listOf("ĐAU", "ĐẦU"), 0.9, "Mình bị đau đầu.", listOf("Đau đầu")))
     var expandResult: AppResult<String> = AppResult.Success("Câu mở rộng.")
     var summaryResult: AppResult<SummaryResult>? = null
+    var summarizeAction: (suspend () -> SummaryResult)? = null
+    var summarizeCalls = 0
     val expandCalls = mutableListOf<Pair<List<String>, String?>>()
     var savedTurns = mutableListOf<MessageTurn>()
     var lastPersonalChips: List<String> = emptyList()
@@ -28,8 +30,10 @@ class RecordingConversationRepository : TranslationRepository {
         expandCalls += chips to previousIncoming
         return expandResult.unwrap()
     }
-    override suspend fun summarize(context: ServiceContext, audio: RecordedAudio, previousOutgoing: String?) =
-        requireNotNull(summaryResult).unwrap()
+    override suspend fun summarize(context: ServiceContext, audio: RecordedAudio, previousOutgoing: String?): SummaryResult {
+        summarizeCalls++
+        return summarizeAction?.invoke() ?: requireNotNull(summaryResult).unwrap()
+    }
 
     private fun <T> AppResult<T>.unwrap(): T = when (this) {
         is AppResult.Success -> data
@@ -43,11 +47,20 @@ class RecordingSpeakerRepository(private val calls: RecordingConversationReposit
     var stopped = false
     var cancelled = false
     var speechError: Exception? = null
+    var speakAction: (suspend () -> Unit)? = null
+    var recordingError: Exception? = null
     override fun startSignCapture() { calls?.let { it.startSignCount++ } }
-    override fun startRecording() { calls?.let { it.startVoiceCount++ } }
+    override fun startRecording() {
+        recordingError?.let { throw it }
+        calls?.let { it.startVoiceCount++ }
+    }
     override suspend fun finishSignCapture() = List(4) { SignFrame(byteArrayOf(1), 640, 480) }
     override suspend fun finishRecording() = RecordedAudio(byteArrayOf(1), 1000)
-    override suspend fun speak(sentence: String) { speechError?.let { throw it }; spoken += sentence }
+    override suspend fun speak(sentence: String) {
+        speechError?.let { throw it }
+        spoken += sentence
+        speakAction?.invoke()
+    }
     override fun stopSpeaking() { stopped = true }
     override fun cancelCapture() { cancelled = true }
 }

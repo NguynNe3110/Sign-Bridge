@@ -30,6 +30,12 @@ Mobile gọi từ điện thoại cùng wifi: `http://<IP-laptop>:8080/api/...` 
 
 ## Endpoint
 
+Android hiện mặc định gọi **trực tiếp AI Service** tại `https://tartness-humbling-backboned.ngrok-free.dev/`, không qua host Spring mock `scrimmage-legume-unvalued`. Hợp đồng đang chạy xem `/docs` hoặc `/openapi.json` trên host AI. Chọn thẻ gọi `POST /api/expand`; ghi âm M4A gọi `POST /api/summarize` (dịch vụ tự STT và tóm tắt), phát loa dùng TTS Android. Timeout tổng cho AI là 30 giây. Swagger AI hiện chưa khai báo `/api/sign`.
+
+Gradle property `signbridge.apiBaseUrl` và địa chỉ IPv4 đã lưu trong app vẫn được ưu tiên nếu có; cần bảo đảm chúng trỏ đúng AI Service khi thử kết nối trực tiếp. Các mục Spring Boot bên dưới mô tả service gateway trong repo riêng.
+
+Chạy `powershell -ExecutionPolicy Bypass -File .\scripts\test-backend.ps1` để in request, gọi health/expand và lưu response. Test ghi âm/ảnh ký hiệu cùng các ví dụ request xem [scripts/README.md](scripts/README.md).
+
 | Method | Path | Body |
 |---|---|---|
 | GET | `/api/health` | — |

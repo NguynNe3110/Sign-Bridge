@@ -22,6 +22,7 @@
     <string name="staff_replay">Phát lại</string>
     <string name="staff_mic_idle">Nhấn giữ để nói</string>
     <string name="staff_mic_active">Đang nghe… thả tay để gửi</string>
+    <string name="staff_mic_ready">Đã cấp quyền micro. Nhấn giữ nút lần nữa để nói; thả tay để gửi.</string>
     <string name="staff_summarizing">Đang tóm tắt…</string>
 
     <!-- Nửa dưới: người khiếm thính -->
@@ -29,7 +30,10 @@
     <string name="deaf_sign_active">Đang quay… thả tay để gửi</string>
     <string name="deaf_recognizing">Đang nhận diện ký hiệu…</string>
     <string name="deaf_staff_speaking">Nhân viên đang nói…</string>
+    <string name="deaf_processing_speech">Đang chuyển lời nói thành văn bản…</string>
     <string name="deaf_summary_title">Nhân viên nói</string>
+    <string name="deaf_show_transcript">Xem lời nói đầy đủ</string>
+    <string name="deaf_hide_transcript">Ẩn lời nói đầy đủ</string>
     <string name="deaf_quick_replies">Trả lời nhanh</string>
     <string name="deaf_understood">Đã hiểu: %1$s</string>
     <string name="deaf_unsure_title">Máy chưa chắc, bạn chạm thẻ để xác nhận:</string>

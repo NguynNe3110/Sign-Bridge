@@ -4,6 +4,7 @@ sealed interface ConversationUiEvent {
     data object ScreenStopped : ConversationUiEvent
     data object CaptureCancelled : ConversationUiEvent
     data class PermissionDenied(val camera: Boolean) : ConversationUiEvent
+    data object MicPermissionGranted : ConversationUiEvent
     data object CameraUnavailable : ConversationUiEvent
     // Người khiếm thính
     data object SignPressed : ConversationUiEvent

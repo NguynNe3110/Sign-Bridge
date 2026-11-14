@@ -19,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.uzuu.signbridge.R
 import com.uzuu.signbridge.core.result.ErrorCode
 import com.uzuu.signbridge.ui.theme.Dimens
@@ -46,9 +49,10 @@ fun ErrorBanner(
     error: ErrorCode,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    message: String? = null,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
         shape = RoundedCornerShape(Dimens.CornerRadius),
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -60,7 +64,7 @@ fun ErrorBanner(
             Icon(Icons.Filled.Warning, contentDescription = null)
             Spacer(Modifier.width(Dimens.SpaceS))
             Text(
-                text = stringResource(error.messageRes()),
+                text = message ?: stringResource(error.messageRes()),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .weight(1f)

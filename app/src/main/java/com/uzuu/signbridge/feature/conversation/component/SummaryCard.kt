@@ -13,14 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +57,7 @@ fun SummaryCard(
     quickRepliesEnabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
+    var showTranscript by rememberSaveable(summary.transcript) { mutableStateOf(false) }
     val highlightColor = colors.onSurface
     val text = remember(summary, highlightColor) {
         buildHighlightedSummary(summary.summary, summary.highlights, highlightColor)
@@ -78,6 +85,24 @@ fun SummaryCard(
             }
             Spacer(Modifier.size(Dimens.SpaceM))
             Text(text = text, style = SummaryStyle, color = colors.onSurface)
+
+            if (summary.transcript.isNotBlank() && summary.transcript != summary.summary) {
+                TextButton(
+                    onClick = { showTranscript = !showTranscript },
+                    modifier = Modifier.heightIn(min = Dimens.TouchTarget),
+                ) {
+                    Text(stringResource(if (showTranscript) R.string.deaf_hide_transcript else R.string.deaf_show_transcript))
+                }
+                if (showTranscript) {
+                    SelectionContainer {
+                        Text(
+                            text = summary.transcript,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.onSurface,
+                        )
+                    }
+                }
+            }
 
             if (summary.quickReplies.isNotEmpty()) {
                 Spacer(Modifier.size(Dimens.SpaceL))

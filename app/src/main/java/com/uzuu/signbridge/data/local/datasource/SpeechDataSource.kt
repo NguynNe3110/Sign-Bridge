@@ -35,6 +35,9 @@ class SpeechDataSource(private val context: Context) {
                         override fun onDone(id: String?) {
                             if (id == utteranceId && continuation.isActive) continuation.resume(Unit)
                         }
+                        override fun onStop(id: String?, interrupted: Boolean) {
+                            if (id == utteranceId) continuation.cancel()
+                        }
                         @Deprecated("Android callback")
                         override fun onError(id: String?) {
                             if (id == utteranceId && continuation.isActive) continuation.resumeWithException(

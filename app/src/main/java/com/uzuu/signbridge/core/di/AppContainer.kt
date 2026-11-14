@@ -29,8 +29,9 @@ class AppContainer(context: Context) {
     private val camera = SignCameraDataSource(appContext)
     val cameraPreview: CameraPreviewController = camera
     val conversation: ConversationRepository = ConversationRepositoryImpl(ConversationDao(database))
-    private val httpClient = OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS)
-        .connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS)
+    // Direct AI requests include both speech recognition and LLM inference.
+    private val httpClient = OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS).build()
     val serverSettings: ServerSettingsRepository = ServerSettingsRepositoryImpl(
         appContext.getSharedPreferences("server_connection", Context.MODE_PRIVATE),

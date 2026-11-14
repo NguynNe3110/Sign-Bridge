@@ -54,6 +54,8 @@ fun StaffPanel(
     modifier: Modifier = Modifier,
     isOffline: Boolean = false,
     onCaptureCancelled: () -> Unit = onMicReleased,
+    errorMessage: String? = null,
+    showMicReadyHint: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -117,7 +119,15 @@ fun StaffPanel(
 
             if (error != null) {
                 Spacer(Modifier.size(Dimens.SpaceM))
-                ErrorBanner(error = error, onDismiss = onDismissError)
+                ErrorBanner(error = error, onDismiss = onDismissError, message = errorMessage)
+            }
+            if (showMicReadyHint) {
+                Spacer(Modifier.size(Dimens.SpaceM))
+                Text(
+                    text = stringResource(R.string.staff_mic_ready),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
             }
         }
 

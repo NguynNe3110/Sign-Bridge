@@ -50,7 +50,8 @@ internal fun rememberConversationDevices(
         else viewModel.onEvent(ConversationUiEvent.PermissionDenied(camera = true))
     }
     val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        if (!it) viewModel.onEvent(ConversationUiEvent.PermissionDenied(camera = false))
+        viewModel.onEvent(if (it) ConversationUiEvent.MicPermissionGranted
+            else ConversationUiEvent.PermissionDenied(camera = false))
         // Do not start recording after the original press has already ended.
     }
 

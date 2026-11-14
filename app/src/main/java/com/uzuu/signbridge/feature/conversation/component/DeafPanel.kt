@@ -75,13 +75,19 @@ fun DeafPanel(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceM),
         ) {
-            state.deafError?.let { ErrorBanner(error = it, onDismiss = onDismissError) }
+            state.deafError?.let {
+                ErrorBanner(error = it, onDismiss = onDismissError, message = state.deafErrorMessage)
+            }
             cameraPreview()
 
             when {
-                state.isStaffRecording || state.isSummarizing -> StatusRow(
+                state.isStaffRecording -> StatusRow(
                     text = stringResource(R.string.deaf_staff_speaking),
-                    showProgress = state.isSummarizing,
+                    showProgress = false,
+                )
+                state.isSummarizing -> StatusRow(
+                    text = stringResource(R.string.deaf_processing_speech),
+                    showProgress = true,
                 )
                 state.summary != null -> SummaryCard(
                     summary = state.summary,
